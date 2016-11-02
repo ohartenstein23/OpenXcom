@@ -55,7 +55,6 @@ void RuleUfo::load(const YAML::Node &node, Mod *mod)
 {
 	if (const YAML::Node &parent = node["refNode"])
 	{
-		Log(LOG_INFO) << "Load parent node";
 		load(parent, mod);
 	}
 	_type = node["type"].as<std::string>(_type);
