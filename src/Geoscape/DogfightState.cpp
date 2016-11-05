@@ -1624,12 +1624,27 @@ void DogfightState::drawProjectile(const CraftWeaponProjectile* p)
 		for (int y = yStart; y > yEnd; --y)
 		{
 			Uint8 radarPixelColor = _window->getPixel(xPos + 3, y + 3);
-			Uint8 color = radarPixelColor - pixelOffset;
-			if (color < _colors[BLOB_MIN])
+
+			int beamPower = 0;
+			if (p->getType() == CWPT_PLASMA_BEAM)
 			{
-				color = _colors[BLOB_MIN];
+				beamPower = std::floor(_ufo->getRules()->getWeaponPower() / _game->getMod()->getUfoBeamWidthParameter());
 			}
-			_battle->setPixel(xPos, y, color);
+
+			for (int x = 0; x <= std::min(beamPower, 3); x++)
+			{
+				Uint8 color = radarPixelColor - pixelOffset - beamPower + 2 * x;
+				if (color < _colors[BLOB_MIN])
+				{
+					color = _colors[BLOB_MIN];
+				}
+				if (color > radarPixelColor)
+				{
+					color = radarPixelColor;
+				}
+				_battle->setPixel(xPos + x, y, color);
+				_battle->setPixel(xPos - x, y, color);
+			}
 		}
 	}
 }
