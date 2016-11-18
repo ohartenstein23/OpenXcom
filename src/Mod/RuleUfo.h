@@ -62,6 +62,7 @@ class RuleUfo
 private:
 	std::string _type, _size;
 	int _sprite, _marker;
+	int _shield, _shieldRecharge, _shieldBleedThrough;
 	int _power, _range, _score, _reload, _breakOffTime;
 	int _fireSound;
 	RuleTerrain *_battlescapeTerrainData;
@@ -85,6 +86,12 @@ public:
 	int getSprite() const;
 	/// Gets the UFO's globe marker.
 	int getMarker() const;
+	/// Gets the UFO's shield capacity.
+	int getShield() const;
+	/// Gets the UFO's shield recharge rate.
+	int getShieldRecharge() const;
+	/// Get how much damage bleeds through the UFO's shield when downed
+	int getShieldBleedThrough() const;
 	/// Gets the UFO's weapon power.
 	int getWeaponPower() const;
 	/// Gets the UFO's weapon range.

@@ -28,7 +28,7 @@ namespace OpenXcom
 {
 
 const int STANDOFF_DIST = 560;
-enum ColorNames { CRAFT_MIN, CRAFT_MAX, RADAR_MIN, RADAR_MAX, DAMAGE_MIN, DAMAGE_MAX, BLOB_MIN, RANGE_METER, DISABLED_WEAPON, DISABLED_AMMO, DISABLED_RANGE };
+enum ColorNames { CRAFT_MIN, CRAFT_MAX, RADAR_MIN, RADAR_MAX, DAMAGE_MIN, DAMAGE_MAX, BLOB_MIN, RANGE_METER, DISABLED_WEAPON, DISABLED_AMMO, DISABLED_RANGE, SHIELD_MIN, SHIELD_MAX };
 
 class ImageButton;
 class Text;
@@ -69,9 +69,10 @@ private:
 	int _pilotAccuracyBonus, _pilotDodgeBonus, _pilotApproachSpeedModifier;
 	bool _firedAtLeastOnce;
 	int _ufoGlancingHitThreshold;
-
-	// craft min/max, radar min/max, damage min/max
-	int _colors[11];
+	double _ufoShieldRecharge;
+	int  _ufoShieldBleedThrough;
+	// craft min/max, radar min/max, damage min/max, shield min/max
+	int _colors[13];
 	// Ends the dogfight.
 	void endDogfight();
 
