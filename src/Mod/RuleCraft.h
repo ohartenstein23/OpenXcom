@@ -34,13 +34,14 @@ class Mod;
  */
 struct RuleCraftStats
 {
-	int fuelMax, damageMax, speedMax, accel, radarRange, radarChance, sightRange, hitBonus, avoidBonus, powerBonus, armor;
+	int fuelMax, damageMax, speedMax, accel, radarRange, radarChance, sightRange, hitBonus, avoidBonus, powerBonus, armor, shieldBonus, shieldRechargeBonus, shieldBleedThroughAlter;
 
 	/// Default constructor.
 	RuleCraftStats() :
 		fuelMax(0), damageMax(0), speedMax(0), accel(0),
 		radarRange(0), radarChance(0), sightRange(0),
-		hitBonus(0), avoidBonus(0), powerBonus(0), armor(0)
+		hitBonus(0), avoidBonus(0), powerBonus(0), armor(0),
+		shieldBonus(0), shieldRechargeBonus(0), shieldBleedThroughAlter(0)
 	{
 
 	}
@@ -58,6 +59,9 @@ struct RuleCraftStats
 		avoidBonus += r.avoidBonus;
 		powerBonus += r.powerBonus;
 		armor += r.armor;
+		shieldBonus += r.shieldBonus;
+		shieldRechargeBonus += r.shieldRechargeBonus;
+		shieldBleedThroughAlter += r.shieldBleedThroughAlter;
 		return *this;
 	}
 	/// Subtract different stats.
@@ -74,6 +78,9 @@ struct RuleCraftStats
 		avoidBonus -= r.avoidBonus;
 		powerBonus -= r.powerBonus;
 		armor -= r.armor;
+		shieldBonus -= r.shieldBonus;
+		shieldRechargeBonus -= r.shieldRechargeBonus;
+		shieldBleedThroughAlter -= r.shieldBleedThroughAlter;
 		return *this;
 	}
 	/// Gets negative values of stats.
@@ -97,6 +104,9 @@ struct RuleCraftStats
 		avoidBonus = node["avoidBonus"].as<int>(avoidBonus);
 		powerBonus = node["powerBonus"].as<int>(powerBonus);
 		armor = node["armor"].as<int>(armor);
+		shieldBonus = node["shieldBonus"].as<int>(shieldBonus);
+		shieldRechargeBonus = node["shieldRechargeBonus"].as<int>(shieldRechargeBonus);
+		shieldBleedThroughAlter = node["shieldBleedThroughAlter"].as<int>(shieldBleedThroughAlter);
 	}
 };
 
