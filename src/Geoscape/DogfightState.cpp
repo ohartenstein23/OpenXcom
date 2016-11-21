@@ -916,7 +916,7 @@ void DogfightState::update()
 		if ((_ufo->getShield() != 0) && (_interceptionNumber == _ufo->getShieldRechargeHandle()))
 		{
 			double ufoShieldRecharge = double (_ufo->getCraftStats().shieldRecharge) / 100.0;
-			int integerShieldRecharge = std::floor(ufoShieldRecharge);
+			int integerShieldRecharge = floor(ufoShieldRecharge);
 			double fractionShieldRecharge = ufoShieldRecharge - integerShieldRecharge;
 			int shieldToRecharge = integerShieldRecharge + int (std::ceil(fractionShieldRecharge - RNG::generate(0.0, 1.0)));
 			_ufo->setShield(_ufo->getShield() + shieldToRecharge);
@@ -926,7 +926,7 @@ void DogfightState::update()
 		if (_craft->getShield() != 0)
 		{
 			double craftShieldRecharge = double (_craft->getCraftStats().shieldRecharge) / 100.0;
-			int integerShieldRecharge = std::floor(craftShieldRecharge);
+			int integerShieldRecharge = floor(craftShieldRecharge);
 			double fractionShieldRecharge = craftShieldRecharge - integerShieldRecharge;
 			int shieldToRecharge = integerShieldRecharge + int (std::ceil(fractionShieldRecharge - RNG::generate(0.0, 1.0)));
 			if (shieldToRecharge != 0)
@@ -1753,7 +1753,7 @@ void DogfightState::drawProjectile(const CraftWeaponProjectile* p)
 			int beamPower = 0;
 			if (p->getType() == CWPT_PLASMA_BEAM)
 			{
-				beamPower = std::floor(_ufo->getRules()->getWeaponPower() / _game->getMod()->getUfoBeamWidthParameter());
+				beamPower = floor(_ufo->getRules()->getWeaponPower() / _game->getMod()->getUfoBeamWidthParameter());
 			}
 
 			for (int x = 0; x <= std::min(beamPower, 3); x++)

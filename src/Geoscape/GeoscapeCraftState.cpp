@@ -198,7 +198,7 @@ GeoscapeCraftState::GeoscapeCraftState(Craft *craft, Globe *globe, Waypoint *way
 
 	_txtDamage->setText(tr("STR_DAMAGE_UC_").arg(Text::formatPercentage(_craft->getDamagePercentage())));
 
-	_txtShield->setText(tr("STR_SHIELD").arg(Text::formatPercentage(int (std::floor((double)_craft->getShield() / _craft->getShieldCapacity() * 100)))));
+	_txtShield->setText(tr("STR_SHIELD").arg(Text::formatPercentage(_craft->getShieldPercentage())));
 
 	for(int i = 0; i < _weaponNum; ++i)
 	{
