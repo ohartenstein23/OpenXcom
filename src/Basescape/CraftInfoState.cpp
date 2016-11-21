@@ -226,8 +226,7 @@ void CraftInfoState::init()
 	std::wostringstream ss2;
 	if (_craft->getShieldCapacity() != 0)
 	{
-		int shieldPercentage = std::floor((double)_craft->getShield() / _craft->getShieldCapacity() * 100);
-		ss2 << tr("STR_SHIELD").arg(Text::formatPercentage(shieldPercentage));
+		ss2 << tr("STR_SHIELD").arg(Text::formatPercentage(_craft->getShieldPercentage()));
 		if (_craft->getShield() < _craft->getShieldCapacity())
 		{
 			int shieldHours = (int)ceil((double)_craft->getShieldCapacity() / _craft->getRules()->getShieldRechargeAtBase());
