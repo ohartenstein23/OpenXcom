@@ -719,6 +719,15 @@ void Craft::setShield(int shield)
 }
 
 /**
+ * Returns the percentage of shields remaining out of the max capacity
+ * @return Percentage of shield
+ */
+int Craft::getShieldPercentage() const
+{
+	return (int)floor((double)_shield / _stats.shieldCapacity * 100);
+}
+
+/**
  * Returns whether the craft is currently low on fuel
  * (only has enough to head back to base).
  * @return True if it's low, false otherwise.

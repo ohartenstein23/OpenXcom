@@ -150,6 +150,8 @@ public:
 	int getShield() const;
 	/// Sets the craft's shield remaining
 	void setShield(int shield);
+	/// Gets the percent shield remaining
+	int getShieldPercentage() const;
 	/// Gets whether the craft is running out of fuel.
 	bool getLowFuel() const;
 	/// Sets whether the craft is running out of fuel.
