@@ -29,7 +29,7 @@ CXXFLAGS ?= -O3
 CXXFLAGS += -Wall
 else
 CXXFLAGS ?= -O3
-CXXFLAGS += -Wall -rdynamic
+CXXFLAGS += -Wall -rdynamic -ggdb
 endif
 
 CXXFLAGS += -std=gnu++11 $(addprefix -D,$(TARGET))
@@ -65,6 +65,9 @@ $(OBJDIR)%.o:: Engine/Adlib/%.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 $(OBJDIR)%.o:: Geoscape/%.cpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+$(OBJDIR)%.o:: GeoscapeGenerator/%.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 $(OBJDIR)%.o:: Interface/%.cpp
