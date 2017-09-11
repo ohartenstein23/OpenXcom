@@ -20,23 +20,24 @@
 #include <vector>
 #include <list>
 #include <map>
-#include "../fmath.h"
-#include "GlobeSection.h"
 
 namespace OpenXcom
 {
 
+class GlobeSection;
+
 struct GreatCircleIntersection
 {
 	std::pair<double, double> coordinates;
-	std::pair<int, int> circles;
+	std::pair<size_t, size_t> circles;
 
 	/// Default constructor
-	GreatCircleIntersection() : coordinates{0.0, 0.0}, circles{-1, -1}
+	GreatCircleIntersection() : coordinates{}, circles{}
 		{ }
 
 	// Constructor initializing the variables
-	GreatCircleIntersection(std::pair<double, double> coorinates, std::pair<size_t, size_t> circles);
+	GreatCircleIntersection(std::pair<double, double> coords, std::pair<size_t, size_t> circs) : coordinates(coords), circles(circs)
+		{ }
 };
 
 class GeoscapeGenerator

@@ -24,7 +24,7 @@
 namespace OpenXcom
 {
 
-GlobeSection::GlobeSection(GlobeGenerator *parent) : _parent(parent), _heightIndex(0)
+GlobeSection::GlobeSection(GeoscapeGenerator *parent) : _parent(parent), _heightIndex(0)
 {
 	_greatCircles.clear();
 	_intersections.clear();
@@ -78,23 +78,33 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 	for (std::map<size_t, int>::iterator i = _greatCircles.begin(); i != _greatCircles.end(); ++i)
 	{
 		// Get the intersection points
-		_parent->intersectGreatCircles(i->first, circleIndex, &intersectionIndex[0], &intersectionIndex[1]);
+		_parent->intersectGreatCircles((*i).first, circleIndex, &intersectionIndex[0], &intersectionIndex[1]);
 
-		// Find which other pair of great circles intersect the same boundary circle as the one just intersected
+		// Special case for first few sections: no intersections exist, just add the new ones
 		size_t tempCircles[2];
 		size_t tempIndex = 0;
 
+		if (_intersections.size() == 0)
+		{
+			tempCircles[0] = tempCircles[1] = 0;
+			intersectionCounter = 2;
+			intersections[0] = &_parent->getIntersections()->at(intersectionIndex[0]);
+			intersections[1] = &_parent->getIntersections()->at(intersectionIndex[1]);
+			break;
+		}
+
+		// Find which other pair of great circles intersect the same boundary circle as the one just intersected
 		for (std::vector<GreatCircleIntersection*>::iterator j = _intersections.begin(); j != _intersections.end(); ++j)
 		{
-			if ((*j)->circles->first() == (*i)->first())
+			if ((*j)->circles.first == (*i).first)
 			{
-				tempCircles[tempIndex] = (*j)->circles->second;
+				tempCircles[tempIndex] = (*j)->circles.second;
 				tempIndex++;
 			}
 
-			if ((*j)->circles->second() == (*i)->first())
+			if ((*j)->circles.second == (*i).first)
 			{
-				tempCircles[tempIndex] = (*j)->circles->first;
+				tempCircles[tempIndex] = (*j)->circles.first;
 				tempIndex++;
 			}
 
@@ -104,23 +114,23 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 			}
 		}
 
-		bool intersectionOnPerimeter[2];
+		bool intersectionOnPerimeter[2] = {false, false};
 		// Test whether the intersection points are properly above/below the other great circles according to the parity of the circle
-		for (int j = 0, j < 2, ++j) // Loop over the two intersections
+		for (int j = 0; j < 2; ++j) // Loop over the two intersections
 		{
-			for (int k = 0, k < 2, ++k) // Loop over the two other great circles
+			for (int k = 0; k < 2; ++k) // Loop over the two other great circles
 			{
-				double latitude = (* _parent->getIntersections->at(intersectionIndex[j])->coordinates->first);
-				double longitude = (* _parent->getIntersections->at(intersectionIndex[j])->coordinates->second);
+				double latitude = _parent->getIntersections()->at(intersectionIndex[j]).coordinates.first;
+				double longitude = _parent->getIntersections()->at(intersectionIndex[j]).coordinates.second;
 				_parent->rotatePointOnSphere(tempCircles[k], &latitude, &longitude);
 				int parity = _greatCircles.find(tempCircles[k])->second;
 
-				intersectionOnPerimeter[k] = (latitude * parity > 0)
+				intersectionOnPerimeter[k] = (latitude * parity > 0);
 			}
 
-			if (intersecitonOnPerimeter[0] && intersectionOnPerimeter[1])
+			if (intersectionOnPerimeter[0] && intersectionOnPerimeter[1])
 			{
-				intersections[intersectionCounter] = _parent->getIntersections->at(intersectionIndex[j]);
+				intersections[intersectionCounter] = &_parent->getIntersections()->at(intersectionIndex[j]);
 				intersectionCounter++;
 				break;
 			}
@@ -134,78 +144,81 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 	// Create a new globe section if the new circle intersects this globe section
 	if (intersectionCounter)
 	{
-		std::map<size_t, int> newCircles = _greatCircles, oldCircles = _greatCircles;
+		std::map<size_t, int> newCircles, oldCircles;
 		std::vector<GreatCircleIntersection*> newIntersections, oldIntersections;
-		int newHeight, oldHeight;
 
 		// Iterate over other intersections and add them to either new or this section
-		for (std::vector<GreatCircleIntersection*>::iterator i = _intersections.begin(); i != _intersections.end(); ++i)
+		for (std::vector<GreatCircleIntersection*>::const_iterator i = _intersections.begin(); i != _intersections.end(); ++i)
 		{
-			if (i == &intersections[0] || i == &intersections[1])
+			if ((*i) == intersections[0] || (*i) == intersections[1])
 				continue;
 
-			double latitude = (* (*i)->coordinates->first);
-			double longitude = (* (*i)->coordinates->second);
+			double latitude = (*i)->coordinates.first;
+			double longitude = (*i)->coordinates.second;
 			_parent->rotatePointOnSphere(circleIndex, &latitude, &longitude);
 
 			// Assume this intersection is the one above the new circle, the new one is below
 			if (latitude > 0)
 			{
-				oldIntersections.push_back(i);
+				oldIntersections.push_back((*i));
 			}
 			else
 			{
-				newIntersections.push_back(i);
+				newIntersections.push_back((*i));
 			}
-		}
-
-		// Remove great circles from boundary lists if they belong to only one section or the other
-		// Since the intersections with the new circle are not included here, the shared circle will not be added/removed yet
-		for (std::vector<*GreatCircleIntersection>::iterator i = oldIntersections.begin(); i != oldIntersections.end(); ++i)
-		{
-			size_t circles[2] = {(* (*i)->circles->first), (* (*i)->circles->second)};
-			for (size_t j = 0; j < 2; ++j)
-			{
-				std::map<size_t, int>::iterator it = newCircles.find(circles[j]);
-				if (it != newCircles.end())
-					newCircles.erase(it);
-			}
-		}
-
-		// Now that the circles are removed from the new section, remove the ones there from this section
-		for (std::map<size_t, int>::iterator i = newCircles.end(); i != newCircles.end(); ++i)
-		{
-			std::map<size_t, int>::iterator it = oldCircles.find(i->first);
-			if (it != oldCircles.end())
-				oldCircles.erase(it);
 		}
 
 		// Add intersections on new great circle to both new sections
-		for (i = 0, i < 2, i++)
+		for (size_t i = 0; i < 2; i++)
 		{
 			newIntersections.push_back(intersections[i]);
 			oldIntersections.push_back(intersections[i]);
 		}
 
+		// Loop through the intersections, adding the great circles to the new or old globe sections according to the intersection data
+		for (std::vector<GreatCircleIntersection*>::iterator i = newIntersections.begin(); i != newIntersections.end(); ++i)
+		{
+			std::map<size_t, int>::iterator it = _greatCircles.find((*i)->circles.first);
+			if (it != _greatCircles.end())
+				newCircles.insert(std::make_pair((*i)->circles.first, (*it).second)); // insert skips repeat keys
+
+			it = _greatCircles.find((*i)->circles.second);
+			if (it != _greatCircles.end())
+				newCircles.insert(std::make_pair((*i)->circles.second, (*it).second));
+		}
+
+		for (std::vector<GreatCircleIntersection*>::iterator i = oldIntersections.begin(); i != oldIntersections.end(); ++i)
+		{
+			std::map<size_t, int>::iterator it = _greatCircles.find((*i)->circles.first);
+			if (it != _greatCircles.end())
+				oldCircles.insert(std::make_pair((*i)->circles.first, (*it).second));
+
+			it = _greatCircles.find((*i)->circles.second);
+			if (it != _greatCircles.end())
+				oldCircles.insert(std::make_pair((*i)->circles.second, (*it).second));
+		}
+
 		// Add new circle to both sections
-		newCircles.push_back(std::make_pair(circleIndex, -1));
-		oldCircles.push_back(std::make_pair(circleIndex, 1));
+		newCircles[circleIndex] = -1;
+		oldCircles[circleIndex] = 1;
 
 		// Create new section and set the appropriate data to both sections
 		GlobeSection *newSection = new GlobeSection(_parent);
-		newSection->getGreatCircles() = newCircles;
-		newSection->getIntersections() = newIntersections;
+		newSection->getGreatCircles()->insert(newCircles.begin(), newCircles.end());
+		newSection->getIntersections()->assign(newIntersections.begin(), newIntersections.end());
 		newSection->setHeightIndex(_heightIndex - 1);
 		_parent->getGlobeSections()->push_back(newSection);
 
+		_greatCircles.clear();
+		_intersections.clear();
 		_greatCircles = oldCircles;
 		_intersections = oldIntersections;
 		_heightIndex++;
 	}
 	else // Change the height of this section according to being above or below the new circle
 	{
-		double latitude = (_intersections.begin())->coordinates->first;
-		double longitude = (_intersections.begin())->coordinates->second;
+		double latitude = (*_intersections.begin())->coordinates.first;
+		double longitude = (*_intersections.begin())->coordinates.second;
 		_parent->rotatePointOnSphere(circleIndex, &latitude, &longitude);
 
 		if (latitude > 0)

@@ -20,7 +20,6 @@
 #include <vector>
 #include <list>
 #include <map>
-#include "../fmath.h"
 
 namespace OpenXcom
 {

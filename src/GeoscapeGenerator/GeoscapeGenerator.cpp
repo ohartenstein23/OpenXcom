@@ -19,6 +19,7 @@
 
 #include "GeoscapeGenerator.h"
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <sstream>
 #include <set>
@@ -28,13 +29,14 @@
 #include "../Engine/RNG.h"
 #include "../Engine/Options.h"
 #include "../Engine/Exception.h"
+#include "../Engine/Logger.h"
 #include "GlobeSection.h"
 
 namespace OpenXcom
 {
 
-const double RAD_TO_DEG = 180 / M_PI;
-const double DEG_TO_RAD = M_PI / 180;
+const double GeoscapeGenerator::RAD_TO_DEG = 180 / M_PI;
+const double GeoscapeGenerator::DEG_TO_RAD = M_PI / 180;
 
 GeoscapeGenerator::GeoscapeGenerator(uint64_t rngSeed, size_t numberOfCircles) : _rngSeed(rngSeed), _numberOfCircles(numberOfCircles)
 {
@@ -46,11 +48,11 @@ GeoscapeGenerator::GeoscapeGenerator(uint64_t rngSeed, size_t numberOfCircles) :
 	generateGreatCircle();
 
 	GlobeSection *section1 = new GlobeSection(this);
-	section1->getGreatCircles()->at(0) = 1;
+	section1->getGreatCircles()->insert(std::pair<size_t, int>(0, 1));
 	section1->setHeightIndex(1);
 
 	GlobeSection *section2 = new GlobeSection(this);
-	section2->getGreatCircles()->at(0) = -1;
+	section2->getGreatCircles()->insert(std::pair<size_t, int>(0, -1));
 	section2->setHeightIndex(-1);
 
 	_globeSections.push_back(section1);
@@ -70,9 +72,9 @@ void GeoscapeGenerator::generate()
 	for (size_t i = 0; i < _numberOfCircles - 2; ++i)  // First circle is already picked
 	{
 		generateGreatCircle();
-		for (std::vector<GlobeSection*>::reverse_iterator j = _globeSections.rbegin(); j != _globeSections.rend(); ++j)
+		for (size_t j = _globeSections.size(); j > 0; --j)
 		{
-			(*j)->intersectWithGreatCircle(_greatCircles.size() - 1);
+			_globeSections.at(j - 1)->intersectWithGreatCircle(_greatCircles.size() - 1);
 		}
 	}
 }
@@ -119,6 +121,8 @@ void GeoscapeGenerator::generateGreatCircle()
 			}
 		}
 	}
+
+	_greatCircles.push_back(normalVector);
 }
 
 /**
@@ -133,69 +137,86 @@ void GeoscapeGenerator::generateGreatCircle()
 void GeoscapeGenerator::intersectGreatCircles(size_t circle1, size_t circle2, size_t *index1, size_t *index2)
 {
 	// Get the angles from the normal vectors in radians
-	double theta1 = _greatCircles.at(circle1).first * DEG_TO_RAD;
-	double phi1 = _greatCircles.at(circle1).second * DEG_TO_RAD;
-	double theta2 = _greatCircles.at(circle2).first * DEG_TO_RAD;
-	double phi2 = _greatCircles.at(circle2).second * DEG_TO_RAD;
+	double theta[2] = {_greatCircles.at(circle1).first * DEG_TO_RAD, _greatCircles.at(circle2).first * DEG_TO_RAD};
+	double phi[2] = {_greatCircles.at(circle1).second * DEG_TO_RAD, _greatCircles.at(circle2).second * DEG_TO_RAD};
 
-	double x, y, z;
+	// Get the normal vectors from the circles in cartesian coordinates
+	double circle1Vector[3] = {cos(theta[0]) * cos(phi[0]),
+				cos(theta[0]) * sin(phi[0]),
+				sin(theta[0])};
+	double circle2Vector[3] = {cos(theta[1]) * cos(phi[1]),
+				cos(theta[1]) * sin(phi[1]),
+				sin(theta[1])};
+
 	// Get the vector of the line on which the circles intersect in Cartesian coordinates
 	// (Intersection of two planes is along the cross-product of their normal vectors)
-	x = cos(theta1) * sin(phi1) * sin(theta2) - cos(theta2) * sin(phi2) * sin(theta1);
-	y = cos(theta2) * cos(phi2) * sin(theta1) - cos(theta1) * cos(phi1) * sin(theta2);
-	z = cos(theta1) * cos(phi1) * cos(theta2) * sin(phi2) - cos(theta2) * cos(phi2) * cos(theta1) * sin(phi1);
+	double intersectionVector[3] = {circle1Vector[1] * circle2Vector[2] - circle1Vector[2] * circle2Vector[1],
+				circle1Vector[2] * circle2Vector[0] - circle1Vector[0] * circle2Vector[2],
+				circle1Vector[0] * circle2Vector[1] - circle1Vector[1] * circle2Vector[0]};
+	double normalization = 0;
+	for (size_t i = 0; i < 3; ++i)
+	{
+		Log(LOG_INFO) << "GeoscapeGenerator.cpp intersectionVector = " << intersectionVector[i];
+		normalization += intersectionVector[i]*intersectionVector[i];
+	}
 
 	// Get the angles from the Cartesian coordinates (should be 180 degrees or inverted across the origin from each other)
 	// Latitude
-	theta1 = asin(z) * RAD_TO_DEG;
-	theta2 = asin(-z) * RAD_TO_DEG;
+	theta[0] = asin(intersectionVector[2] / normalization) * RAD_TO_DEG;
+	theta[1] = asin(-intersectionVector[2] / normalization) * RAD_TO_DEG;
 
 	// Longitude
-	if (y > 0)
+	if (intersectionVector[1] > 0)
 	{
-		phi1 = acos(x * cos(theta1)) * RAD_TO_DEG;
-		phi2 = 2 * M_PI * acos(-x * cos(theta2)) * RAD_TO_DEG;
+		phi[0] = atan2(intersectionVector[1], intersectionVector[0]) * RAD_TO_DEG;
+		phi[1] = phi[0] + 180.000;
 	}
 	else
 	{
-		phi1 = 2 * M_PI * acos(x * cos(theta1)) * RAD_TO_DEG;
-		phi2 = acos(-x * cos(theta2)) * RAD_TO_DEG;
+		phi[1] = atan2(-intersectionVector[1], -intersectionVector[0]) * RAD_TO_DEG;
+		phi[0] = phi[1] + 180.000;
 	}
 
-	bool index1Set = false;
-	bool index2Set = false;
-	for (size_t i = 0; i < _intersections.size(); i++)
+	// Check to see if these calculated intersections are close enough to another to just use that one
+	bool indexSet[2] = {false, false};
+	for (size_t i = 0; i < _intersections.size(); ++i)
 	{
-		if (!index1Set
-			&& (std::abs(_intersections.at(i).coordinates.second - phi1) < 0.01)
-			&& (std::abs(_intersections.at(i).coordinates.first - theta1) < 0.01))
+		for (size_t j = 0; j < 2; ++j)
 		{
-			(*index1) = i;
+			if (!indexSet[j]
+				&& (std::abs(_intersections.at(i).coordinates.first - theta[j]) < 0.01)
+				&& (std::abs(_intersections.at(i).coordinates.second - phi[j]) < 0.01))
+			{
+				if (!j) // j = 0, circle 1
+				{
+					(*index1) = i;
+				}
+				else // j = 1, circle 2
+				{
+					(*index2) = i;
+				}
+
+				indexSet[j] = true;
+			}
 		}
 
-		if (!index2Set
-			&& (std::abs(_intersections.at(i).coordinates.second - phi2) < 0.01)
-			&& (std::abs(_intersections.at(i).coordinates.first - theta2) < 0.01))
-		{
-			(*index2) = i;
-		}
-
-		if (index1Set && index2Set)
+		if (indexSet[0] && indexSet[1]) // We found both already
 		{
 			break;
 		}
 	}
 
-	if (!index1Set)
+	// Add new intersections to the list if they weren't found already
+	if (!indexSet[0])
 	{
-		GreatCircleIntersection newIntersection(std::make_pair(theta1, phi1), std::make_pair(circle1, circle2));
+		GreatCircleIntersection newIntersection(std::make_pair(theta[0], phi[0]), std::make_pair(circle1, circle2));
 		_intersections.push_back(newIntersection);
 		(*index1) = _intersections.size() - 1;
 	}
 
-	if (!index2Set)
+	if (!indexSet[1])
 	{
-		GreatCircleIntersection newIntersection(std::make_pair(theta2, phi2), std::make_pair(circle1, circle2));
+		GreatCircleIntersection newIntersection(std::make_pair(theta[1], phi[1]), std::make_pair(circle1, circle2));
 		_intersections.push_back(newIntersection);
 		(*index2) = _intersections.size() - 1;
 	}
@@ -255,14 +276,20 @@ void GeoscapeGenerator::rotatePointOnSphere(size_t circle, double *latitude, dou
 		}
 	}
 
-	(*latitude) = asin(outputVector[2]);
-	if ((*latitude) > 0)
+	double normalization = 0;
+	for (size_t i = 0; i < 3; ++i)
 	{
-		(*longitude) = acos(outputVector[0] * cos((*latitude)));
+		normalization += outputVector[i] * outputVector[i];
+	}
+
+	(*latitude) = asin(outputVector[2] / normalization);
+	if (outputVector[1] > 0)
+	{
+		(*longitude) = atan2(outputVector[1], outputVector[0]);
 	}
 	else
 	{
-		(*longitude) = 2 * M_PI - acos(outputVector[0] * cos((*latitude)));
+		(*longitude) = atan2(outputVector[1], outputVector[0]) + 2 * M_PI;
 	}
 
 	(*latitude) = (*latitude) * RAD_TO_DEG;
@@ -300,8 +327,10 @@ void GeoscapeGenerator::save() const
 			sectionData.push_back((*j)->coordinates.second);
 			sectionData.push_back((*j)->coordinates.first);
 		
-		node["polygons"].push_back(sectionData);
+		node["globe"]["polygons"].push_back(sectionData);
+		}
 	}
+	node["RNGSeed"] = _rngSeed;
 
 	out << node;
 	sav << out.c_str();
