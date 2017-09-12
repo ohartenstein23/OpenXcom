@@ -67,7 +67,7 @@ public:
 	/// Picks a random great circle
 	void generateGreatCircle();
 	/// Gets the two intersection points for a pair of great circles
-	void intersectGreatCircles(size_t circle1, size_t circle2, size_t *index1, size_t *index2);
+	void intersectGreatCircles(size_t circle1, size_t circle2);
 	/// Gets a pointer to the list of great circles
 	std::vector<std::pair<double, double>> *getGreatCircles();
 	/// Gets a pointer to the list of intersections

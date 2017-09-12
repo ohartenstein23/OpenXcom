@@ -86,6 +86,8 @@ void GeoscapeGenerator::generate()
 		}
 		_newSections.clear();
 	}
+	
+	Log(LOG_INFO) << "GeoscapeGenerator.cpp: _intersections.size() = " << _intersections.size();
 }
 
 // Gets a random latitude
@@ -107,12 +109,14 @@ double GeoscapeGenerator::randomLongitude()
 
 // Picks a random great circle by the angle of the vector normal to its plane
 // Ensures that the new circle is not too similar to a previous one and adds it
-// to the _greatCircles vector
+// to the _greatCircles vector, then calculates all intersections with the
+// previous great circles and adds them to _intersections
 void GeoscapeGenerator::generateGreatCircle()
 {
 	bool uniqueCircle = false;
 	std::pair<double, double> normalVector;
 
+	// Pick a random great circle by its normal vector
 	while (!uniqueCircle)
 	{
 		normalVector.first = randomLatitude();
@@ -132,18 +136,24 @@ void GeoscapeGenerator::generateGreatCircle()
 	}
 
 	_greatCircles.push_back(normalVector);
+	
+	// Now calculate all the new intersections, if this isn't the first circle
+	if (_greatCircles.size() > 1)
+	{
+		for (size_t i = 0; i < _greatCircles.size() - 1; ++i) // iterate over all previous circles
+		{
+			intersectGreatCircles(i, _greatCircles.size() - 1);
+		}
+	}
 }
 
 /**
  * Gets the two intersection points for a pair of great circles
  * Puts the intersections in the _intersections vector and returns the indices of the intersections in that vector
- * If the intersections are too close to a previous pair, returns those indices instead
  * @param circle1 Index of the first circle.
  * @param circle2 Index of the second circle
- * @param index1 Pointer to the first index to be returned.
- * @param index2 Pointer to the second index to be returned.
  */
-void GeoscapeGenerator::intersectGreatCircles(size_t circle1, size_t circle2, size_t *index1, size_t *index2)
+void GeoscapeGenerator::intersectGreatCircles(size_t circle1, size_t circle2)
 {
 	// Get the angles from the normal vectors in radians
 	double theta[2] = {_greatCircles.at(circle1).first * DEG_TO_RAD, _greatCircles.at(circle2).first * DEG_TO_RAD};
@@ -197,51 +207,11 @@ void GeoscapeGenerator::intersectGreatCircles(size_t circle1, size_t circle2, si
 		phi[0] = phi[1] + 180.000;
 	}
 
-	// Check to see if these calculated intersections are close enough to another to just use that one
-	// The intersecting circles have to be the same too, otherwise we want a unique reference to this pair of circles
-	bool indexSet[2] = {false, false};
-	for (size_t i = 0; i < _intersections.size(); ++i)
+	// Add new intersections to the list
+	for (size_t i = 0; i < 2; ++i)
 	{
-		for (size_t j = 0; j < 2; ++j)
-		{
-			if (!indexSet[j]
-				&& (std::abs(_intersections.at(i).coordinates.first - theta[j]) < 0.01)
-				&& (std::abs(_intersections.at(i).coordinates.second - phi[j]) < 0.01)
-				&& (_intersections.at(i).circles.first == circle1 || _intersections.at(i).circles.second == circle1)
-				&& (_intersections.at(i).circles.first == circle2 || _intersections.at(i).circles.second == circle2))
-			{
-				if (!j) // j = 0, circle 1
-				{
-					(*index1) = i;
-				}
-				else // j = 1, circle 2
-				{
-					(*index2) = i;
-				}
-
-				indexSet[j] = true;
-			}
-		}
-
-		if (indexSet[0] && indexSet[1]) // We found both already
-		{
-			break;
-		}
-	}
-
-	// Add new intersections to the list if they weren't found already
-	if (!indexSet[0])
-	{
-		GreatCircleIntersection newIntersection(std::make_pair(theta[0], phi[0]), std::make_pair(circle1, circle2));
+		GreatCircleIntersection newIntersection(std::make_pair(theta[i], phi[i]), std::make_pair(circle1, circle2));
 		_intersections.push_back(newIntersection);
-		(*index1) = _intersections.size() - 1;
-	}
-
-	if (!indexSet[1])
-	{
-		GreatCircleIntersection newIntersection(std::make_pair(theta[1], phi[1]), std::make_pair(circle1, circle2));
-		_intersections.push_back(newIntersection);
-		(*index2) = _intersections.size() - 1;
 	}
 }
 
@@ -308,11 +278,11 @@ void GeoscapeGenerator::rotatePointOnSphere(size_t circle, double *latitude, dou
 	double z = outputVector[2] / normalization;
 	if (z > 1)
 	{
-		(*latitude) = M_PI;
+		(*latitude) = M_PI_2;
 	}
-	else if (z < 1)
+	else if (z < -1)
 	{
-		(*latitude) = -1 * M_PI;
+		(*latitude) = -1 * M_PI_2;
 	}
 	else
 	{
@@ -364,10 +334,10 @@ void GeoscapeGenerator::save() const
 		std::vector<double> sectionData;
 		sectionData.clear();
 		sectionData.push_back((*i)->getHeightIndex());
-		for (std::vector<GreatCircleIntersection*>::iterator j = (*i)->getIntersections()->begin(); j != (*i)->getIntersections()->end(); ++j)
+		for (std::vector<size_t>::iterator j = (*i)->getIntersections()->begin(); j != (*i)->getIntersections()->end(); ++j)
 		{
-			sectionData.push_back((*j)->coordinates.second);
-			sectionData.push_back((*j)->coordinates.first);
+			sectionData.push_back(_intersections.at(*j).coordinates.second);
+			sectionData.push_back(_intersections.at(*j).coordinates.first);
 		
 		node["globe"]["polygons"].push_back(sectionData);
 		}

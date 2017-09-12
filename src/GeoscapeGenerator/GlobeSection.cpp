@@ -43,8 +43,8 @@ std::map<size_t, int> *GlobeSection::getGreatCircles()
 	return &_greatCircles;
 }
 
-// Gets a pointer to the list of intersection references
-std::vector<GreatCircleIntersection*> *GlobeSection::getIntersections()
+// Gets a pointer to the list of intersection indexes
+std::vector<size_t> *GlobeSection::getIntersections()
 {
 	return &_intersections;
 }
@@ -72,14 +72,27 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 {
 	// Test whether the intersection with each of the great circles that form
 	// the boundaries of this section fall on the perimeter of the section
-	size_t intersectionIndex[2];
+	size_t intersectionIndex[2] = {0, 0}, intersections[2] = {0, 0};
 	size_t intersectionCounter = 0;
-	GreatCircleIntersection *intersections[2];
 
 	for (std::map<size_t, int>::iterator i = _greatCircles.begin(); i != _greatCircles.end(); ++i)
 	{
-		// Get the intersection points
-		_parent->intersectGreatCircles((*i).first, circleIndex, &intersectionIndex[0], &intersectionIndex[1]);
+		// Find the two intersection points that include the new circle and the existing one
+		// The lower index circle will always come first in the pair
+		size_t foundIntersections = 0;
+		for (std::vector<GreatCircleIntersection>::iterator j = _parent->getIntersections()->begin(); j != _parent->getIntersections()->end(); ++j)
+		{
+			if (((*j).circles.first == (*i).first) && ((*j).circles.second == circleIndex))
+			{
+				intersectionIndex[foundIntersections] = j - _parent->getIntersections()->begin();
+				++foundIntersections;
+			}
+			
+			if (foundIntersections == 2) // There should only be two intersections for every circle pair
+			{
+				break;
+			}
+		}
 
 		// Special case for first few sections: no intersections exist, just add the new ones
 		size_t tempCircles[2] = {};
@@ -88,25 +101,26 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 		if (_intersections.size() == 0)
 		{
 			tempCircles[0] = tempCircles[1] = 0;
+			intersections[0] = intersectionIndex[0];
+			intersections[1] = intersectionIndex[1];
 			intersectionCounter = 2;
-			intersections[0] = &_parent->getIntersections()->at(intersectionIndex[0]);
-			intersections[1] = &_parent->getIntersections()->at(intersectionIndex[1]);
 			break;
 		}
 
-		// Find which other pair of great circles intersect the same boundary circle as the one just intersected
-		for (std::vector<GreatCircleIntersection*>::iterator j = _intersections.begin(); j != _intersections.end(); ++j)
+		// Find which other two great circles intersect the same boundary circle as the one just intersected
+		for (std::vector<size_t>::iterator j = _intersections.begin(); j != _intersections.end(); ++j)
 		{
-			Log(LOG_INFO) << "_intersections(j).circles = {" << (*j)->circles.first << ", " << (*j)->circles.second << "}";
-			if ((*j)->circles.first == (*i).first)
+			GreatCircleIntersection *currentIntersection = &_parent->getIntersections()->at(*j);
+			
+			if (currentIntersection->circles.first == (*i).first)
 			{
-				tempCircles[tempIndex] = (*j)->circles.second;
+				tempCircles[tempIndex] = currentIntersection->circles.second;
 				tempIndex++;
 			}
 
-			if ((*j)->circles.second == (*i).first)
+			if (currentIntersection->circles.second == (*i).first)
 			{
-				tempCircles[tempIndex] = (*j)->circles.first;
+				tempCircles[tempIndex] = currentIntersection->circles.first;
 				tempIndex++;
 			}
 
@@ -115,21 +129,6 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 				break;
 			}
 		}
-
-		// FIXME: When new intersections are created, they're getting passed bad great circle indexes
-		Log(LOG_INFO) << "tempCircles = {" << tempCircles[0] << ", " << tempCircles[1] << "}";
-		Log(LOG_INFO) << "tempIndex = " << tempIndex;
-/*[11-09-2017_19-38-45]	[INFO]	_intersections(j).circles = {3546357335280582656, 82111440}
-[11-09-2017_19-38-45]	[INFO]	_intersections(j).circles = {96, 273}
-[11-09-2017_19-38-45]	[INFO]	tempCircles = {0, 0}
-[11-09-2017_19-38-45]	[INFO]	tempIndex = 0*/
-
-/*[11-09-2017_19-26-03]	[INFO]	GlobeSection.cpp, j = 0, k = 0
-[11-09-2017_19-26-03]	[INFO]	GlobeSection.cpp, latitude = -90, longitude = 17.8036
-[11-09-2017_19-26-03]	[INFO]	_parent->getIntersections()->size() = 6
-[11-09-2017_19-26-03]	[INFO]	GlobeSection.cpp, intersectionIndex[j] = 2
-[11-09-2017_19-26-03]	[INFO]	GlobeSection.cpp, tempCircles[k] = 13863909240395005952
-[11-09-2017_19-26-03]	[FATAL]	A fatal error has occurred: vector::_M_range_check*/
 
 		bool intersectionOnPerimeter[2] = {false, false};
 		// Test whether the intersection points are properly above/below the other great circles according to the parity of the circle
@@ -147,7 +146,7 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 
 			if (intersectionOnPerimeter[0] && intersectionOnPerimeter[1])
 			{
-				intersections[intersectionCounter] = &_parent->getIntersections()->at(intersectionIndex[j]);
+				intersections[intersectionCounter] = intersectionIndex[j];
 				intersectionCounter++;
 				break;
 			}
@@ -162,16 +161,18 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 	if (intersectionCounter)
 	{
 		std::map<size_t, int> newCircles, oldCircles;
-		std::vector<GreatCircleIntersection*> newIntersections, oldIntersections;
+		std::vector<size_t> newIntersections, oldIntersections;
+		newIntersections.clear();
+		oldIntersections.clear();
 
 		// Iterate over other intersections and add them to either new or this section
-		for (std::vector<GreatCircleIntersection*>::const_iterator i = _intersections.begin(); i != _intersections.end(); ++i)
+		for (std::vector<size_t>::const_iterator i = _intersections.begin(); i != _intersections.end(); ++i)
 		{
 			if ((*i) == intersections[0] || (*i) == intersections[1])
 				continue;
 
-			double latitude = (*i)->coordinates.first;
-			double longitude = (*i)->coordinates.second;
+			double latitude = _parent->getIntersections()->at(*i).coordinates.first;
+			double longitude = _parent->getIntersections()->at(*i).coordinates.second;
 			_parent->rotatePointOnSphere(circleIndex, &latitude, &longitude);
 
 			// Assume this intersection is the one above the new circle, the new one is below
@@ -193,26 +194,30 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 		}
 
 		// Loop through the intersections, adding the great circles to the new or old globe sections according to the intersection data
-		for (std::vector<GreatCircleIntersection*>::iterator i = newIntersections.begin(); i != newIntersections.end(); ++i)
+		for (std::vector<size_t>::iterator i = newIntersections.begin(); i != newIntersections.end(); ++i)
 		{
-			std::map<size_t, int>::iterator it = _greatCircles.find((*i)->circles.first);
+			GreatCircleIntersection *currentIntersection = &_parent->getIntersections()->at(*i);
+			
+			std::map<size_t, int>::iterator it = _greatCircles.find(currentIntersection->circles.first);
 			if (it != _greatCircles.end())
-				newCircles.insert(std::make_pair((*i)->circles.first, (*it).second)); // insert skips repeat keys
+				newCircles.insert(std::make_pair(currentIntersection->circles.first, (*it).second)); // insert skips repeat keys
 
-			it = _greatCircles.find((*i)->circles.second);
+			it = _greatCircles.find(currentIntersection->circles.second);
 			if (it != _greatCircles.end())
-				newCircles.insert(std::make_pair((*i)->circles.second, (*it).second));
+				newCircles.insert(std::make_pair(currentIntersection->circles.second, (*it).second));
 		}
 
-		for (std::vector<GreatCircleIntersection*>::iterator i = oldIntersections.begin(); i != oldIntersections.end(); ++i)
+		for (std::vector<size_t>::iterator i = oldIntersections.begin(); i != oldIntersections.end(); ++i)
 		{
-			std::map<size_t, int>::iterator it = _greatCircles.find((*i)->circles.first);
+			GreatCircleIntersection *currentIntersection = &_parent->getIntersections()->at(*i);
+			
+			std::map<size_t, int>::iterator it = _greatCircles.find(currentIntersection->circles.first);
 			if (it != _greatCircles.end())
-				oldCircles.insert(std::make_pair((*i)->circles.first, (*it).second));
+				oldCircles.insert(std::make_pair(currentIntersection->circles.first, (*it).second));
 
-			it = _greatCircles.find((*i)->circles.second);
+			it = _greatCircles.find(currentIntersection->circles.second);
 			if (it != _greatCircles.end())
-				oldCircles.insert(std::make_pair((*i)->circles.second, (*it).second));
+				oldCircles.insert(std::make_pair(currentIntersection->circles.second, (*it).second));
 		}
 
 		// Add new circle to both sections
@@ -229,13 +234,13 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 		_greatCircles.clear();
 		_intersections.clear();
 		_greatCircles = oldCircles;
-		_intersections = oldIntersections;
+		_intersections.assign(oldIntersections.begin(), oldIntersections.end());
 		_heightIndex++;
 	}
 	else // Change the height of this section according to being above or below the new circle
 	{
-		double latitude = (*_intersections.begin())->coordinates.first;
-		double longitude = (*_intersections.begin())->coordinates.second;
+		double latitude = _parent->getIntersections()->at(* _intersections.begin()).coordinates.first;
+		double longitude = _parent->getIntersections()->at(* _intersections.begin()).coordinates.second;
 		_parent->rotatePointOnSphere(circleIndex, &latitude, &longitude);
 
 		if (latitude > 0)
