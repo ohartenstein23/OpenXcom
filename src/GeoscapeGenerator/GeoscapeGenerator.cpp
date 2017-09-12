@@ -43,6 +43,7 @@ GeoscapeGenerator::GeoscapeGenerator(uint64_t rngSeed, size_t numberOfCircles) :
 	_greatCircles.clear();
 	_intersections.clear();
 	_globeSections.clear();
+	_newSections.clear();
 
 	// Pick the first great circle and create two globe sections to start the generator
 	generateGreatCircle();
@@ -71,11 +72,19 @@ void GeoscapeGenerator::generate()
 	// Create all the globe sections with the fractal world generator method
 	for (size_t i = 0; i < _numberOfCircles - 2; ++i)  // First circle is already picked
 	{
+		// Get a new great circle and try all possible intersections with current globe sections
 		generateGreatCircle();
-		for (size_t j = _globeSections.size(); j > 0; --j)
+		for (std::vector<GlobeSection*>::iterator j = _globeSections.begin(); j < _globeSections.end(); ++j)
 		{
-			_globeSections.at(j - 1)->intersectWithGreatCircle(_greatCircles.size() - 1);
+			(*j)->intersectWithGreatCircle(_greatCircles.size() - 1);
 		}
+
+		// Add the newly split globe sections to the list
+		for (std::vector<GlobeSection*>::iterator j = _newSections.begin(); j < _newSections.end(); ++j)
+		{
+			_globeSections.push_back((*j));
+		}
+		_newSections.clear();
 	}
 }
 
@@ -156,14 +165,25 @@ void GeoscapeGenerator::intersectGreatCircles(size_t circle1, size_t circle2, si
 	double normalization = 0;
 	for (size_t i = 0; i < 3; ++i)
 	{
-		Log(LOG_INFO) << "GeoscapeGenerator.cpp intersectionVector = " << intersectionVector[i];
-		normalization += intersectionVector[i]*intersectionVector[i];
+		normalization += intersectionVector[i] * intersectionVector[i];
 	}
 
 	// Get the angles from the Cartesian coordinates (should be 180 degrees or inverted across the origin from each other)
 	// Latitude
-	theta[0] = asin(intersectionVector[2] / normalization) * RAD_TO_DEG;
-	theta[1] = asin(-intersectionVector[2] / normalization) * RAD_TO_DEG;
+	double z = intersectionVector[2] / normalization;
+	if (z > 1) // just in case of floating point errors making this outside the range [-1, 1]
+	{
+		theta[0] = 90.000;
+	}
+	else if (z < -1)
+	{
+		theta[0] = -90.000;
+	}
+	else
+	{
+		theta[0] = asin(intersectionVector[2] / normalization) * RAD_TO_DEG;
+	}
+	theta[1] = -theta[0];
 
 	// Longitude
 	if (intersectionVector[1] > 0)
@@ -178,6 +198,7 @@ void GeoscapeGenerator::intersectGreatCircles(size_t circle1, size_t circle2, si
 	}
 
 	// Check to see if these calculated intersections are close enough to another to just use that one
+	// The intersecting circles have to be the same too, otherwise we want a unique reference to this pair of circles
 	bool indexSet[2] = {false, false};
 	for (size_t i = 0; i < _intersections.size(); ++i)
 	{
@@ -185,7 +206,9 @@ void GeoscapeGenerator::intersectGreatCircles(size_t circle1, size_t circle2, si
 		{
 			if (!indexSet[j]
 				&& (std::abs(_intersections.at(i).coordinates.first - theta[j]) < 0.01)
-				&& (std::abs(_intersections.at(i).coordinates.second - phi[j]) < 0.01))
+				&& (std::abs(_intersections.at(i).coordinates.second - phi[j]) < 0.01)
+				&& (_intersections.at(i).circles.first == circle1 || _intersections.at(i).circles.second == circle1)
+				&& (_intersections.at(i).circles.first == circle2 || _intersections.at(i).circles.second == circle2))
 			{
 				if (!j) // j = 0, circle 1
 				{
@@ -282,7 +305,20 @@ void GeoscapeGenerator::rotatePointOnSphere(size_t circle, double *latitude, dou
 		normalization += outputVector[i] * outputVector[i];
 	}
 
-	(*latitude) = asin(outputVector[2] / normalization);
+	double z = outputVector[2] / normalization;
+	if (z > 1)
+	{
+		(*latitude) = M_PI;
+	}
+	else if (z < 1)
+	{
+		(*latitude) = -1 * M_PI;
+	}
+	else
+	{
+		(*latitude) = asin(outputVector[2] / normalization);
+	}
+
 	if (outputVector[1] > 0)
 	{
 		(*longitude) = atan2(outputVector[1], outputVector[0]);
@@ -300,6 +336,12 @@ void GeoscapeGenerator::rotatePointOnSphere(size_t circle, double *latitude, dou
 std::vector<GlobeSection*> *GeoscapeGenerator::getGlobeSections()
 {
 	return &_globeSections;
+}
+
+// Gets the list of globe sections added by the latest great circle intersections
+std::vector<GlobeSection*> *GeoscapeGenerator::getNewSections()
+{
+	return &_newSections;
 }
 
 // Saves the result of the geoscape generator

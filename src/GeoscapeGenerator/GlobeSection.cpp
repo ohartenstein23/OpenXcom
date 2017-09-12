@@ -20,6 +20,7 @@
 #include "GlobeSection.h"
 #include <algorithm>
 #include "GeoscapeGenerator.h"
+#include "../Engine/Logger.h"
 
 namespace OpenXcom
 {
@@ -81,7 +82,7 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 		_parent->intersectGreatCircles((*i).first, circleIndex, &intersectionIndex[0], &intersectionIndex[1]);
 
 		// Special case for first few sections: no intersections exist, just add the new ones
-		size_t tempCircles[2];
+		size_t tempCircles[2] = {};
 		size_t tempIndex = 0;
 
 		if (_intersections.size() == 0)
@@ -96,6 +97,7 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 		// Find which other pair of great circles intersect the same boundary circle as the one just intersected
 		for (std::vector<GreatCircleIntersection*>::iterator j = _intersections.begin(); j != _intersections.end(); ++j)
 		{
+			Log(LOG_INFO) << "_intersections(j).circles = {" << (*j)->circles.first << ", " << (*j)->circles.second << "}";
 			if ((*j)->circles.first == (*i).first)
 			{
 				tempCircles[tempIndex] = (*j)->circles.second;
@@ -113,6 +115,21 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 				break;
 			}
 		}
+
+		// FIXME: When new intersections are created, they're getting passed bad great circle indexes
+		Log(LOG_INFO) << "tempCircles = {" << tempCircles[0] << ", " << tempCircles[1] << "}";
+		Log(LOG_INFO) << "tempIndex = " << tempIndex;
+/*[11-09-2017_19-38-45]	[INFO]	_intersections(j).circles = {3546357335280582656, 82111440}
+[11-09-2017_19-38-45]	[INFO]	_intersections(j).circles = {96, 273}
+[11-09-2017_19-38-45]	[INFO]	tempCircles = {0, 0}
+[11-09-2017_19-38-45]	[INFO]	tempIndex = 0*/
+
+/*[11-09-2017_19-26-03]	[INFO]	GlobeSection.cpp, j = 0, k = 0
+[11-09-2017_19-26-03]	[INFO]	GlobeSection.cpp, latitude = -90, longitude = 17.8036
+[11-09-2017_19-26-03]	[INFO]	_parent->getIntersections()->size() = 6
+[11-09-2017_19-26-03]	[INFO]	GlobeSection.cpp, intersectionIndex[j] = 2
+[11-09-2017_19-26-03]	[INFO]	GlobeSection.cpp, tempCircles[k] = 13863909240395005952
+[11-09-2017_19-26-03]	[FATAL]	A fatal error has occurred: vector::_M_range_check*/
 
 		bool intersectionOnPerimeter[2] = {false, false};
 		// Test whether the intersection points are properly above/below the other great circles according to the parity of the circle
@@ -207,7 +224,7 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 		newSection->getGreatCircles()->insert(newCircles.begin(), newCircles.end());
 		newSection->getIntersections()->assign(newIntersections.begin(), newIntersections.end());
 		newSection->setHeightIndex(_heightIndex - 1);
-		_parent->getGlobeSections()->push_back(newSection);
+		_parent->getNewSections()->push_back(newSection);
 
 		_greatCircles.clear();
 		_intersections.clear();

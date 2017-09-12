@@ -50,7 +50,7 @@ private:
 	size_t _numberOfCircles;
 	std::vector<std::pair<double, double>> _greatCircles; // toil and trouble
 	std::vector<GreatCircleIntersection> _intersections;
-	std::vector<GlobeSection*> _globeSections;
+	std::vector<GlobeSection*> _globeSections, _newSections;
 public:
 	/// Constructor
 	GeoscapeGenerator(uint64_t rngSeed, size_t numberOfCircles);
@@ -76,6 +76,8 @@ public:
 	void rotatePointOnSphere(size_t circle, double *latitude, double *longitude);
 	/// Gets the list of globe sections
 	std::vector<GlobeSection*> *getGlobeSections();
+	/// Gets the list of globe sections added by the latest great circle intersections
+	std::vector<GlobeSection*> *getNewSections();
 	/// Saves the result of the geoscape generator
 	void save() const;
 

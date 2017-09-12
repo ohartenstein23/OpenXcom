@@ -32,6 +32,8 @@
 #include "OptionsVideoState.h"
 #include "../Engine/Screen.h"
 #include "../Engine/Options.h"
+#include "../Engine/RNG.h"
+#include "../GeoscapeGenerator/GeoscapeGenerator.h"
 
 namespace OpenXcom
 {
@@ -56,6 +58,7 @@ MainMenuState::MainMenuState()
 	_btnLoad = new TextButton(92, 20, 64, 118);
 	_btnOptions = new TextButton(92, 20, 164, 118);
 	_btnQuit = new TextButton(192, 20, 64, 146);
+	_btnGeoGenerator = new TextButton(5, 5, 5, 5);
 	_txtTitle = new Text(256, 30, 32, 45);
 
 	// Set palette
@@ -67,6 +70,7 @@ MainMenuState::MainMenuState()
 	add(_btnLoad, "button", "mainMenu");
 	add(_btnOptions, "button", "mainMenu");
 	add(_btnQuit, "button", "mainMenu");
+	add(_btnGeoGenerator, "button", "mainMenu");
 	add(_txtTitle, "text", "mainMenu");
 
 	centerAllSurfaces();
@@ -88,6 +92,9 @@ MainMenuState::MainMenuState()
 
 	_btnQuit->setText(tr("STR_QUIT"));
 	_btnQuit->onMouseClick((ActionHandler)&MainMenuState::btnQuitClick);
+
+	_btnGeoGenerator->setText(tr("STR_GEOSCAPE_GENERATOR"));
+	_btnGeoGenerator->onMouseClick((ActionHandler)&MainMenuState::btnGeoGeneratorClick);
 
 	_txtTitle->setAlign(ALIGN_CENTER);
 	_txtTitle->setBig();
@@ -149,6 +156,17 @@ void MainMenuState::btnOptionsClick(Action *)
 void MainMenuState::btnQuitClick(Action *)
 {
 	_game->quit();
+}
+
+/**
+ * Runs the geoscape generator.
+ * @param action Pointer to an action.
+ */
+void MainMenuState::btnGeoGeneratorClick(Action *)
+{
+	GeoscapeGenerator *geoscapeGenerator = new GeoscapeGenerator(RNG::getSeed(), 100);
+	geoscapeGenerator->generate();
+	geoscapeGenerator->save();
 }
 
 /**
