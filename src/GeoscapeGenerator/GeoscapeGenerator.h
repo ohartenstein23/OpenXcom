@@ -20,6 +20,7 @@
 #include <vector>
 #include <list>
 #include <map>
+#include "GlobeVector.h"
 
 namespace OpenXcom
 {
@@ -34,12 +35,13 @@ private:
 
 	uint64_t _rngSeed;
 	size_t _numberOfCircles;
-	std::vector<std::pair<double, double>> _greatCircles; // toil and trouble
-	std::map<std::pair<size_t, size_t>, std::vector<double>> _intersections;
-	std::vector<GlobeSection*> _globeSections, _newSections;
+	std::vector<GlobeVector> _greatCircles;
+	std::map<std::pair<size_t, size_t>, GlobeVector> _intersections;
+	std::vector<GlobeSection*> _globeSections;
+	std::vector<GlobeSection*> _newSections;
 public:
 	/// Constructor
-	GeoscapeGenerator(uint64_t rngSeed, size_t numberOfCircles);
+	GeoscapeGenerator();
 	/// Cleans up the GeoscapeGenerator
 	~GeoscapeGenerator();
 
@@ -54,12 +56,10 @@ public:
 	void generateGreatCircle();
 	/// Gets the two intersection points for a pair of great circles
 	void intersectGreatCircles(size_t circle1, size_t circle2);
-	/// Gets a pointer to the list of great circles
-	std::vector<std::pair<double, double>> *getGreatCircles();
+	/// Gets the rotation of a point to the frame of reference of a great circle
+	std::vector<GlobeVector> *getGreatCircles();
 	/// Gets a pointer to the list of intersections
-	std::map<std::pair<size_t, size_t>, std::vector<double>> *getIntersections();
-	/// Rotates a point on the globe according to a great circle
-	void rotatePointOnSphere(size_t circle, double *latitude, double *longitude);
+	std::map<std::pair<size_t, size_t>, GlobeVector> *getIntersections();
 	/// Gets the list of globe sections
 	std::vector<GlobeSection*> *getGlobeSections();
 	/// Gets the list of globe sections added by the latest great circle intersections

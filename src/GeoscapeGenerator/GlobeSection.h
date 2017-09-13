@@ -20,21 +20,21 @@
 #include <vector>
 #include <list>
 #include <map>
+#include "GlobeVector.h"
 
 namespace OpenXcom
 {
 
 class GeoscapeGenerator;
-class GreatCircleIntersection;
 
 class GlobeSection
 {
 private:
 	GeoscapeGenerator *_parent;
 	std::map<size_t, int> _greatCircles;
-	std::map<std::map<std::pair<size_t, size_t>, std::vector<double>>::iterator, size_t> _intersections;
+	std::vector<std::pair<std::pair<size_t, size_t>, int>> _intersections;
 	int _heightIndex;
-	std::pair<double, double> _centerCoordinates;
+	GlobeVector _centerCoordinates;
 
 public:
 	/// Constructor
@@ -44,8 +44,8 @@ public:
 
 	/// Gets a pointer to the map of great circles
 	std::map<size_t, int> *getGreatCircles();
-	/// Gets a pointer to the list of intersection indexes
-	std::map<std::map<std::pair<size_t, size_t>, std::vector<double>>::iterator, size_t> *getIntersections();
+	/// Gets a pointer to the list of intersections
+	std::vector<std::pair<std::pair<size_t, size_t>, int>> *getIntersections();
 	/// Gets the heightIndex of the section
 	int getHeightIndex();
 	/// Sets the heightIndex of the section
