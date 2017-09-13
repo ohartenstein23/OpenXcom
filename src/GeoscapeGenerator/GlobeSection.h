@@ -32,7 +32,7 @@ class GlobeSection
 private:
 	GeoscapeGenerator *_parent;
 	std::map<size_t, int> _greatCircles;
-	std::vector<size_t> _intersections;
+	std::map<std::map<std::pair<size_t, size_t>, std::vector<double>>::iterator, size_t> _intersections;
 	int _heightIndex;
 	std::pair<double, double> _centerCoordinates;
 
@@ -45,7 +45,7 @@ public:
 	/// Gets a pointer to the map of great circles
 	std::map<size_t, int> *getGreatCircles();
 	/// Gets a pointer to the list of intersection indexes
-	std::vector<size_t> *getIntersections();
+	std::map<std::map<std::pair<size_t, size_t>, std::vector<double>>::iterator, size_t> *getIntersections();
 	/// Gets the heightIndex of the section
 	int getHeightIndex();
 	/// Sets the heightIndex of the section

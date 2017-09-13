@@ -26,20 +26,6 @@ namespace OpenXcom
 
 class GlobeSection;
 
-struct GreatCircleIntersection
-{
-	std::pair<double, double> coordinates;
-	std::pair<size_t, size_t> circles;
-
-	/// Default constructor
-	GreatCircleIntersection() : coordinates{}, circles{}
-		{ }
-
-	// Constructor initializing the variables
-	GreatCircleIntersection(std::pair<double, double> coords, std::pair<size_t, size_t> circs) : coordinates(coords), circles(circs)
-		{ }
-};
-
 class GeoscapeGenerator
 {
 private:
@@ -49,7 +35,7 @@ private:
 	uint64_t _rngSeed;
 	size_t _numberOfCircles;
 	std::vector<std::pair<double, double>> _greatCircles; // toil and trouble
-	std::vector<GreatCircleIntersection> _intersections;
+	std::map<std::pair<size_t, size_t>, std::vector<double>> _intersections;
 	std::vector<GlobeSection*> _globeSections, _newSections;
 public:
 	/// Constructor
@@ -71,7 +57,7 @@ public:
 	/// Gets a pointer to the list of great circles
 	std::vector<std::pair<double, double>> *getGreatCircles();
 	/// Gets a pointer to the list of intersections
-	std::vector<GreatCircleIntersection> *getIntersections();
+	std::map<std::pair<size_t, size_t>, std::vector<double>> *getIntersections();
 	/// Rotates a point on the globe according to a great circle
 	void rotatePointOnSphere(size_t circle, double *latitude, double *longitude);
 	/// Gets the list of globe sections

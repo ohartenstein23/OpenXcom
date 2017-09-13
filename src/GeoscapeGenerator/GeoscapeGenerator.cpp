@@ -86,8 +86,6 @@ void GeoscapeGenerator::generate()
 		}
 		_newSections.clear();
 	}
-	
-	Log(LOG_INFO) << "GeoscapeGenerator.cpp: _intersections.size() = " << _intersections.size();
 }
 
 // Gets a random latitude
@@ -207,12 +205,15 @@ void GeoscapeGenerator::intersectGreatCircles(size_t circle1, size_t circle2)
 		phi[0] = phi[1] + 180.000;
 	}
 
+	std::vector<double> coordinates;
+	coordinates.clear();
+	coordinates.push_back(theta[0]);
+	coordinates.push_back(phi[0]);
+	coordinates.push_back(theta[1]);
+	coordinates.push_back(phi[1]);
+
 	// Add new intersections to the list
-	for (size_t i = 0; i < 2; ++i)
-	{
-		GreatCircleIntersection newIntersection(std::make_pair(theta[i], phi[i]), std::make_pair(circle1, circle2));
-		_intersections.push_back(newIntersection);
-	}
+	_intersections[std::make_pair(circle1, circle2)] = coordinates;
 }
 
 // Gets a pointer to the list of great circles
