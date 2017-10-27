@@ -17,29 +17,37 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <vector>
+#include "BattleState.h"
 #include "Position.h"
-#include "BattlescapeGame.h"
-#include "../Mod/RuleItem.h"
-#include <SDL.h>
-
-#include "ForcedMovment.h"
 
 namespace OpenXcom
 {
 
-class Tile
+class BattlescapeGame;
+class BattleAction;
+class BattleUnit;
+class Tile;
 //class TODO: list all the classes we need to know about for a ForceMovementBState
 
 /**
  * Runs a forced movement on a unit
  */
-class ForcedMovmentBState
+class ForcedMovementBState : public BattleState
 {
 private:
-	//TODO put variables needed only for this class here
+	BattleUnit *_unit;
+	bool _isTargeted, _isWarp;
 public:
-	//TODO put functions that other classes need to know about here
-}
+	/// Creates a new ForcedMovementBState class.
+	ForcedMovementBState(BattlescapeGame *parent, BattleAction action, BattleUnit *unit);
+        /// Cleans up the ForcedMovementBState.
+        ~ForcedMovementBState();
+	/// Initializes the state.
+	void init();
+	/// Handles a cancel request.
+	void cancel();
+	/// Runs state functionality every cycle.
+	void think();
+};
 
 }

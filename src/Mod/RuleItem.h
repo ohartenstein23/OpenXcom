@@ -155,6 +155,8 @@ private:
 	RuleItemAction _confAimed, _confAuto, _confSnap, _confMelee;
 	int _accuracyUse, _accuracyMind, _accuracyPanic, _accuracyThrow, _accuracyCloseQuarters;
 	int _noLOSAccuracyPenalty;
+	int _forcedMovementKnockback, _forcedMovementRecoil;
+	bool _forcedMovementIsTargeted, _forcedMovementIsWarp;
 	RuleItemUseCost _costUse, _costMind, _costPanic, _costThrow, _costPrime, _costUnprime;
 	int _clipSize, _specialChance, _tuLoad[AmmoSlotMax], _tuUnload[AmmoSlotMax];
 	BattleType _battleType;
@@ -375,6 +377,15 @@ public:
 	int getAccuracyCloseQuarters(Mod *mod) const;
 	/// Get penalty for firing this weapon on out-of-LOS targets
 	int getNoLOSAccuracyPenalty(Mod *mod) const;
+
+	/// Get the forced movement knockback.
+	int getForcedMovementKnockback() const;
+	/// Get the forced movement recoil.
+	int getForcedMovementRecoil() const;
+	/// Get whether the forced movement is targeted.
+	bool getForcedMovementIsTargeted() const;
+	/// Get whether the forced movement is a teleport/warp.
+	bool getForcedMovementIsWarp() const;
 
 	/// Gets the item's aimed shot cost.
 	RuleItemUseCost getCostAimed() const;

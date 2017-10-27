@@ -29,6 +29,7 @@
 #include "MeleeAttackBState.h"
 #include "PsiAttackBState.h"
 #include "ExplosionBState.h"
+#include "ForcedMovementBState.h"
 #include "TileEngine.h"
 #include "UnitInfoState.h"
 #include "UnitDieBState.h"
@@ -1579,6 +1580,18 @@ void BattlescapeGame::primaryAction(Position pos)
 					_parentState->warning("STR_LINE_OF_SIGHT_REQUIRED");
 				}
 			}
+			else if (_currentAction.weapon->getRules()->getForcedMovementIsWarp())
+			{
+				_currentAction.target = pos;
+				if (!_save->selectUnit(pos))
+				{
+					_currentAction.updateTU();
+					getMap()->setCursorType(CT_NONE);
+					_parentState->getGame()->getCursor()->setVisible(false);
+					_currentAction.cameraPosition = getMap()->getCamera()->getMapOffset();
+					statePushBack(new ForcedMovementBState(this, _currentAction, _currentAction.actor));
+				}
+			}			
 		}
 		else if ((_currentAction.type == BA_PANIC || _currentAction.type == BA_MINDCONTROL || _currentAction.type == BA_USE) && _currentAction.weapon->getRules()->getBattleType() == BT_PSIAMP)
 		{

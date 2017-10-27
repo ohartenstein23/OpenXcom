@@ -49,6 +49,8 @@ RuleItem::RuleItem(const std::string &type) :
 	_power(0), _powerRangeReduction(0), _powerRangeThreshold(0),
 	_accuracyUse(0), _accuracyMind(0), _accuracyPanic(20), _accuracyThrow(100), _accuracyCloseQuarters(-1),
 	_noLOSAccuracyPenalty(-1),
+	_forcedMovementKnockback(0), _forcedMovementRecoil(0),
+	_forcedMovementIsTargeted(false), _forcedMovementIsWarp(false),
 	_costUse(25), _costMind(-1, -1), _costPanic(-1, -1), _costThrow(25), _costPrime(50), _costUnprime(25),
 	_clipSize(0), _specialChance(100), _tuLoad{ }, _tuUnload{ },
 	_battleType(BT_NONE), _fuseType(BFT_NONE), _fuseTriggerEvents{ }, _hiddenOnMinimap(false), _psiAttackName(), _primeActionName("STR_PRIME_GRENADE"), _unprimeActionName(), _primeActionMessage("STR_GRENADE_IS_ACTIVATED"), _unprimeActionMessage("STR_GRENADE_IS_DEACTIVATED"),
@@ -480,6 +482,21 @@ void RuleItem::load(const YAML::Node &node, Mod *mod, int listOrder, const ModSc
 	_accuracyThrow = node["accuracyThrow"].as<int>(_accuracyThrow);
 	_accuracyCloseQuarters = node["accuracyCloseQuarters"].as<int>(_accuracyCloseQuarters);
 	_noLOSAccuracyPenalty = node["noLOSAccuracyPenalty"].as<int>(_noLOSAccuracyPenalty);
+
+        if (const YAML::Node &nodeForcedMovement = node["forcedMovement"])
+	{
+		if (nodeForcedMovement.IsMap()) // Load in all forced movement parameters
+		{
+			_forcedMovementKnockback = nodeForcedMovement["knockback"].as<int>(_forcedMovementKnockback);
+			_forcedMovementRecoil = nodeForcedMovement["recoil"].as<int>(_forcedMovementRecoil);
+			_forcedMovementIsTargeted = nodeForcedMovement["targeted"].as<bool>(_forcedMovementIsTargeted);
+			_forcedMovementIsWarp = nodeForcedMovement["warp"].as<bool>(_forcedMovementIsWarp);
+		}
+                if (nodeForcedMovement.IsScalar()) // If just a number, assume it's impact knockback
+		{
+			_forcedMovementKnockback = node["forcedMovement"].as<int>(_forcedMovementKnockback);
+		}
+	}
 
 	loadCost(_confAimed.cost, node, "Aimed");
 	loadCost(_confAuto.cost, node, "Auto");
@@ -1167,6 +1184,42 @@ int RuleItem::getAccuracyCloseQuarters(Mod *mod) const
 int RuleItem::getNoLOSAccuracyPenalty(Mod *mod) const
 {
 	return _noLOSAccuracyPenalty != -1 ? _noLOSAccuracyPenalty : mod->getNoLOSAccuracyPenaltyGlobal();
+}
+
+/**
+ * Gets the amount of knockback this item causes to targets.
+ * @return The knockback.
+ */
+int RuleItem::getForcedMovementKnockback() const
+{
+	return _forcedMovementKnockback;
+}
+
+/**
+ * Gets the amount of recoil this item causes to users.
+ * @return The recoil.
+ */
+int RuleItem::getForcedMovementRecoil() const
+{
+	return _forcedMovementRecoil;
+}
+
+/**
+ * Gets whether the forced movement of this item is targeted.
+ * @return True if targeted.
+ */
+bool RuleItem::getForcedMovementIsTargeted() const
+{
+	return _forcedMovementIsTargeted;
+}
+
+/**
+ * Gets whether the forced movement of this item is a warp.
+ * @return True if warp.
+ */
+bool RuleItem::getForcedMovementIsWarp() const
+{
+	return _forcedMovementIsWarp;
 }
 
 /**
