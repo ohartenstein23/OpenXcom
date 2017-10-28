@@ -1556,6 +1556,18 @@ void BattlescapeGame::primaryAction(Position pos)
 				getMap()->getWaypoints()->push_back(pos);
 			}
 		}
+		else if (_currentAction.weapon->getRules()->getForcedMovementIsWarp())
+		{
+			_currentAction.target = pos;
+			if (!_save->selectUnit(pos))
+			{
+				_currentAction.updateTU();
+				getMap()->setCursorType(CT_NONE);
+				_parentState->getGame()->getCursor()->setVisible(false);
+				_currentAction.cameraPosition = getMap()->getCamera()->getMapOffset();
+				statePushBack(new ForcedMovementBState(this, _currentAction, _currentAction.actor));
+			}
+		}
 		else if (_currentAction.type == BA_USE && _currentAction.weapon->getRules()->getBattleType() == BT_MINDPROBE)
 		{
 			if (_save->selectUnit(pos) && _save->selectUnit(pos)->getFaction() != _save->getSelectedUnit()->getFaction() && _save->selectUnit(pos)->getVisible())
@@ -1578,18 +1590,6 @@ void BattlescapeGame::primaryAction(Position pos)
 				else
 				{
 					_parentState->warning("STR_LINE_OF_SIGHT_REQUIRED");
-				}
-			}
-			else if (_currentAction.weapon->getRules()->getForcedMovementIsWarp())
-			{
-				_currentAction.target = pos;
-				if (!_save->selectUnit(pos))
-				{
-					_currentAction.updateTU();
-					getMap()->setCursorType(CT_NONE);
-					_parentState->getGame()->getCursor()->setVisible(false);
-					_currentAction.cameraPosition = getMap()->getCamera()->getMapOffset();
-					statePushBack(new ForcedMovementBState(this, _currentAction, _currentAction.actor));
 				}
 			}			
 		}

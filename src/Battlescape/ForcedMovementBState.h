@@ -27,7 +27,6 @@ class BattlescapeGame;
 class BattleAction;
 class BattleUnit;
 class Tile;
-//class TODO: list all the classes we need to know about for a ForceMovementBState
 
 /**
  * Runs a forced movement on a unit
@@ -37,6 +36,9 @@ class ForcedMovementBState : public BattleState
 private:
 	BattleUnit *_unit;
 	bool _isTargeted, _isWarp;
+	int _unitSize;
+	Position _targetPosition;
+	bool _fallAtEnd;
 public:
 	/// Creates a new ForcedMovementBState class.
 	ForcedMovementBState(BattlescapeGame *parent, BattleAction action, BattleUnit *unit);
@@ -48,6 +50,8 @@ public:
 	void cancel();
 	/// Runs state functionality every cycle.
 	void think();
+	/// Checks whether or not a target endpoint is valid.
+	bool validateTarget();
 };
 
 }
