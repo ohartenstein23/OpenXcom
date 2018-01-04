@@ -164,9 +164,11 @@ void MainMenuState::btnQuitClick(Action *)
  */
 void MainMenuState::btnGeoGeneratorClick(Action *)
 {
-	GeoscapeGenerator *geoscapeGenerator = new GeoscapeGenerator(RNG::getSeed(), 10);
+	GeoscapeGenerator *geoscapeGenerator = new GeoscapeGenerator();
 	geoscapeGenerator->generate();
 	geoscapeGenerator->save();
+
+	delete geoscapeGenerator;
 }
 
 /**

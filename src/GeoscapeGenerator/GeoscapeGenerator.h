@@ -37,8 +37,8 @@ private:
 	size_t _numberOfCircles;
 	std::vector<GlobeVector> _greatCircles;
 	std::map<std::pair<size_t, size_t>, GlobeVector> _intersections;
-	std::vector<GlobeSection*> _globeSections;
-	std::vector<GlobeSection*> _newSections;
+	std::vector<GlobeSection> _globeSections;
+	std::vector<GlobeSection> _newSections;
 public:
 	/// Constructor
 	GeoscapeGenerator();
@@ -61,11 +61,13 @@ public:
 	/// Gets a pointer to the list of intersections
 	std::map<std::pair<size_t, size_t>, GlobeVector> *getIntersections();
 	/// Gets the list of globe sections
-	std::vector<GlobeSection*> *getGlobeSections();
+	std::vector<GlobeSection> *getGlobeSections();
 	/// Gets the list of globe sections added by the latest great circle intersections
-	std::vector<GlobeSection*> *getNewSections();
+	std::vector<GlobeSection> *getNewSections();
 	/// Saves the result of the geoscape generator
 	void save() const;
+	/// Saves information and throws an exception in case of an error.
+	void error() const;
 
 };
 

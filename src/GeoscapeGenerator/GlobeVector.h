@@ -23,6 +23,7 @@
 #include <cmath>
 #include <algorithm>
 #include <cfloat>
+#include "../Engine/Logger.h"
 #define _USE_MATH_DEFINES
 
 #ifndef M_DEG_TO_RAD
@@ -106,9 +107,8 @@ public:
 		}
 		else
 		{
-			lon = atan2(y, x) * M_RAD_TO_DEG + 180.0;
+			lon = atan2(y, x) * M_RAD_TO_DEG + 360.0;
 		}
-		lon = std::fmod(lon, 360.0); // limit longitude to 0-360 degrees
 	}
 	/// Converts from a quaternion (assume constant part is 0) to a unit vector
 	GlobeVector(const Quaternion& quat)
@@ -128,9 +128,8 @@ public:
 		}
 		else
 		{
-			lon = atan2(y, x) * M_RAD_TO_DEG + 180.0;
+			lon = atan2(y, x) * M_RAD_TO_DEG + 360.0;
 		}
-		lon = std::fmod(lon, 360.0); // limit longitude to 0-360 degrees
 	}
 	/// Constructor for copying
 	constexpr GlobeVector(const GlobeVector& vec) : lat(vec.lat), lon(vec.lon), x(vec.x), y(vec.y), z(vec.z) {};
@@ -151,6 +150,11 @@ public:
 		theta *= (M_DEG_TO_RAD / 2);
 		Quaternion rotationQuat(cos(theta), sin(theta) * rotationVector.x, sin(theta) * rotationVector.y, sin(theta) * rotationVector.z);
 		return(GlobeVector(rotationQuat * (quat * rotationQuat.inverse())));
+	}
+
+	void writeToLog() const
+	{
+		Log(LOG_INFO) << " (" << x << ", " << y << ", " << z << ", " << lat << ", " << lon << ")";
 	}
 	
 

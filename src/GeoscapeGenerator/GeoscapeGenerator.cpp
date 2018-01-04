@@ -37,8 +37,9 @@ namespace OpenXcom
 
 GeoscapeGenerator::GeoscapeGenerator()
 {
-	_rngSeed = RNG::getSeed();
-	_numberOfCircles = 10;
+	_rngSeed = 1515083783; //RNG::getSeed();
+        RNG::setSeed(_rngSeed);
+	_numberOfCircles = 3;
 }
 
 // Cleans up the GeoscapeGenerator
@@ -53,29 +54,28 @@ void GeoscapeGenerator::generate()
 	// Pick the first great circle and create two globe sections to start the generator
 	generateGreatCircle();
 
-	GlobeSection *section1 = new GlobeSection(this);
-	section1->getGreatCircles()->insert(std::pair<size_t, int>(0, 1));
-	section1->setHeightIndex(1);
+	GlobeSection section1 = GlobeSection(this);
+	section1.getGreatCircles()->insert(std::pair<size_t, int>(0, 1));
+	section1.setHeightIndex(1);
 
-	GlobeSection *section2 = new GlobeSection(this);
-	section2->getGreatCircles()->insert(std::pair<size_t, int>(0, -1));
-	section2->setHeightIndex(-1);
+	GlobeSection section2 = GlobeSection(this);
+	section2.getGreatCircles()->insert(std::pair<size_t, int>(0, -1));
 
 	_globeSections.push_back(section1);
 	_globeSections.push_back(section2);
 	
 	// Create all the globe sections with the fractal world generator method
-	for (size_t i = 0; i < _numberOfCircles - 2; ++i)  // First circle is already picked
+	for (size_t i = 0; i < _numberOfCircles - 1; ++i)  // First circle is already picked
 	{
 		// Get a new great circle and try all possible intersections with current globe sections
 		generateGreatCircle();
-		for (std::vector<GlobeSection*>::iterator j = _globeSections.begin(); j < _globeSections.end(); ++j)
+		for (std::vector<GlobeSection>::iterator j = _globeSections.begin(); j != _globeSections.end(); ++j)
 		{
-			(*j)->intersectWithGreatCircle(_greatCircles.size() - 1);
+			(*j).intersectWithGreatCircle(_greatCircles.size() - 1);
 		}
 
 		// Add the newly split globe sections to the list
-		for (std::vector<GlobeSection*>::iterator j = _newSections.begin(); j < _newSections.end(); ++j)
+		for (std::vector<GlobeSection>::iterator j = _newSections.begin(); j != _newSections.end(); ++j)
 		{
 			_globeSections.push_back((*j));
 		}
@@ -148,7 +148,7 @@ void GeoscapeGenerator::generateGreatCircle()
 void GeoscapeGenerator::intersectGreatCircles(size_t circle1, size_t circle2)
 {
 	// The intersection of two great circles lies along the line defined by the cross-product of their normal vectors
-	GlobeVector intersection = _greatCircles.at(circle1) * _greatCircles.at(circle2);
+	GlobeVector intersection = _greatCircles.at(circle2) * _greatCircles.at(circle1);
 
 	// Since the pair of intersections are related by an inversion through the origin (multiplication of vector by -1
 	// for unit vectors), only need to store the one vector
@@ -168,13 +168,13 @@ std::map<std::pair<size_t, size_t>, GlobeVector> *GeoscapeGenerator::getIntersec
 }
 
 // Gets the list of globe sections
-std::vector<GlobeSection*> *GeoscapeGenerator::getGlobeSections()
+std::vector<GlobeSection> *GeoscapeGenerator::getGlobeSections()
 {
 	return &_globeSections;
 }
 
 // Gets the list of globe sections added by the latest great circle intersections
-std::vector<GlobeSection*> *GeoscapeGenerator::getNewSections()
+std::vector<GlobeSection> *GeoscapeGenerator::getNewSections()
 {
 	return &_newSections;
 }
@@ -194,12 +194,12 @@ void GeoscapeGenerator::save() const
 	out << YAML::BeginDoc;
 	YAML::Node node;
 
-	for (std::vector<GlobeSection*>::const_iterator i = _globeSections.begin(); i != _globeSections.end(); ++i)
+	for (auto i : _globeSections)
 	{
 		std::vector<double> sectionData;
 		sectionData.clear();
-		sectionData.push_back((*i)->getHeightIndex());
-		for (std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator j = (*i)->getIntersections()->begin(); j != (*i)->getIntersections()->end(); ++j)
+		sectionData.push_back(i.getHeightIndex());
+		for (auto j = i.getIntersections()->begin(); j != i.getIntersections()->end(); ++j)
 		{
 			const std::pair<size_t, size_t> circles = (*j).first;
 			std::map<std::pair<size_t, size_t>, GlobeVector>::const_iterator it = _intersections.find(circles);
@@ -212,9 +212,63 @@ void GeoscapeGenerator::save() const
 	}
 	node["RNGSeed"] = _rngSeed;
 
+	for (auto i : _greatCircles)
+	{
+		std::vector<double> coords = {i.x, i.y, i.z, i.lat, i.lon};
+		node["globe"]["greatCircles"].push_back(coords);
+	}
+
 	out << node;
 	sav << out.c_str();
 	sav.close();
+}
+
+// Outputs all info to log on error
+void GeoscapeGenerator::error() const
+{
+	Log(LOG_ERROR) << "GeoscapeGenerator encountered an error, printing all info.";
+	Log(LOG_ERROR) << " Great Circles:";
+	for (auto i : _greatCircles)
+	{
+		i.writeToLog();
+	}
+	Log(LOG_ERROR) << " Intersections:";
+	for (auto i : _intersections)
+	{
+		Log(LOG_ERROR) << "  (" << i.first.first << ", " << i.first.second << ")";
+		i.second.writeToLog();
+	}
+	Log(LOG_ERROR) << " GlobeSections:";
+	size_t sectionNumber = 0;
+	for (auto i : _globeSections)
+	{
+		Log(LOG_ERROR) << "  Section " << sectionNumber << ":";
+		sectionNumber++;
+		for (auto j = i.getGreatCircles()->begin(); j != i.getGreatCircles()->end(); ++j)
+		{
+			Log(LOG_ERROR) << "   (" << (*j).first << ", " << (*j).second << ")";
+		}
+		for (auto j = i.getIntersections()->begin(); j != i.getIntersections()->end(); ++j)
+		{
+			Log(LOG_ERROR) << "   (" << (*j).first.first << ", " << (*j).first.second << ", " << (*j).second << ")";
+		}
+	}
+	Log(LOG_ERROR) << " NewSections:";
+	sectionNumber = 0;
+	for (auto i : _newSections)
+	{
+		Log(LOG_ERROR) << "  Section " << sectionNumber << ":";
+		sectionNumber++;
+		for (auto j = i.getGreatCircles()->begin(); j != i.getGreatCircles()->end(); ++j)
+		{
+			Log(LOG_ERROR) << "   (" << (*j).first << ", " << (*j).second << ")";
+		}
+		for (auto j = i.getIntersections()->begin(); j != i.getIntersections()->end(); ++j)
+		{
+			Log(LOG_ERROR) << "   (" << (*j).first.first << ", " << (*j).first.second << ", " << (*j).second << ")";
+		}
+	}
+	throw Exception("Error in geoscape generator.");
 }
 
 }
