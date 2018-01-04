@@ -154,7 +154,7 @@ public:
 
 	void writeToLog() const
 	{
-		Log(LOG_INFO) << " (" << x << ", " << y << ", " << z << ", " << lat << ", " << lon << ")";
+		Log(LOG_INFO) << "  (" << x << ", " << y << ", " << z << ", " << lat << ", " << lon << ")";
 	}
 	
 

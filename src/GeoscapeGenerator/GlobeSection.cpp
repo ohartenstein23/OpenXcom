@@ -139,10 +139,17 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 		{
 			for (size_t k = 0; k < 2; ++k) // loop over the two circles for testing
 			{
+				Log(LOG_INFO) << "candidateIntersection:";
+				candidateIntersection.writeToLog();
 				GlobeVector testIntersection = candidateIntersection * direction[j];
 				GlobeVector coordinateReference(0, 0, 1); // Our reference frame is to the great circle with normal along the z direction
-				testIntersection.rotate(coordinateReference * _parent->getGreatCircles()->at(outerCircles.at(k)), _parent->getGreatCircles()->at(outerCircles.at(k)).lat);
-			
+				testIntersection = testIntersection.rotate(coordinateReference * _parent->getGreatCircles()->at(outerCircles.at(k)), _parent->getGreatCircles()->at(outerCircles.at(k)).lat);
+
+				Log(LOG_INFO) << "circleForRotation: " << outerCircles.at(k);
+
+				Log(LOG_INFO) << "testIntersection:";
+				testIntersection.writeToLog();
+
 				// Find the testing circle in the list and get whether this section is above or below it
 				int parity = 1;
 				std::map<size_t, int>::iterator it = _greatCircles.find(outerCircles.at(k));
@@ -157,8 +164,11 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 					Log(LOG_ERROR) << "   j = " << j << ", k = " << k;
 					_parent->error();
 				}
+
+				Log(LOG_INFO) << "parity = " << parity;
 			
-				testIntersections[j] == testIntersections[j] && ((testIntersection.z * parity) > 0);
+				testIntersections[j] = testIntersections[j] && ((testIntersection.z * parity) > 0);
+				Log(LOG_INFO) << "testIntersections = " << testIntersections[0] << ", " << testIntersections[1];
 			}
 		
 			if (testIntersections[j]) // We found the point, only one of the two can be valid

@@ -39,7 +39,7 @@ GeoscapeGenerator::GeoscapeGenerator()
 {
 	_rngSeed = 1515083783; //RNG::getSeed();
         RNG::setSeed(_rngSeed);
-	_numberOfCircles = 3;
+	_numberOfCircles = 10;
 }
 
 // Cleans up the GeoscapeGenerator
