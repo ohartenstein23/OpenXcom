@@ -33,7 +33,7 @@
 #include "../Engine/Screen.h"
 #include "../Engine/Options.h"
 #include "../Engine/RNG.h"
-#include "../GeoscapeGenerator/GeoscapeGenerator.h"
+#include "../GeoscapeGenerator/GeoscapeGeneratorState.h"
 
 namespace OpenXcom
 {
@@ -164,11 +164,11 @@ void MainMenuState::btnQuitClick(Action *)
  */
 void MainMenuState::btnGeoGeneratorClick(Action *)
 {
-	GeoscapeGenerator *geoscapeGenerator = new GeoscapeGenerator();
-	geoscapeGenerator->generate();
-	geoscapeGenerator->save();
+	_game->pushState(new GeoscapeGeneratorState);
+	//geoscapeGenerator->generate();
+	//geoscapeGenerator->save();
 
-	delete geoscapeGenerator;
+	//delete geoscapeGenerator;
 }
 
 /**

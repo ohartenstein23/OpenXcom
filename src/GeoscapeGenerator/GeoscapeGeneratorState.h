@@ -17,41 +17,47 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "../Engine/State.h"
 #include <vector>
-#include <list>
-#include <map>
-#include "GlobeVector.h"
+#include <string>
 
 namespace OpenXcom
 {
 
 class GeoscapeGenerator;
+class TextButton;
+class TextEdit;
+class Window;
+class Text;
+class ComboBox;
+class Slider;
+class Frame;
 
-class GlobeSection
+class GeoscapeGeneratorState : public State
 {
 private:
-	GeoscapeGenerator *_parent;
-	std::map<size_t, int> _greatCircles;
-	std::vector<std::pair<std::pair<size_t, size_t>, int>> _intersections;
-	int _heightIndex;
-	GlobeVector _centerCoordinates;
+	Window *_window;
+	Text *_txtTitle, *_txtSeed;
+	TextButton *_btnOk, *_btnClear, *_btnCancel;
+	TextEdit *_edtSeed;
+
+	size_t _rngSeed;
 
 public:
 	/// Constructor
-	GlobeSection(GeoscapeGenerator *parent);
-	/// Cleans up the GlobeSection.
-	~GlobeSection();
-
-	/// Gets a pointer to the map of great circles
-	std::map<size_t, int> *getGreatCircles();
-	/// Gets a pointer to the list of intersections
-	std::vector<std::pair<std::pair<size_t, size_t>, int>> *getIntersections();
-	/// Gets the heightIndex of the section
-	int getHeightIndex();
-	/// Sets the heightIndex of the section
-	void setHeightIndex(int heightIndex);
-	/// Intersects a great circle with this globe section
-	void intersectWithGreatCircle(size_t circleIndex);
+	GeoscapeGeneratorState();
+	/// Cleans up the GeoscapeGeneratorState
+	~GeoscapeGeneratorState();
+	/// Initializes the data for the geoscape generator.
+	void init();
+	/// Handler for changing the RNG seed using the text editor.
+	void edtSeedChange(Action *action);
+	/// Handler for clicking the OK button.
+	void btnOkClick(Action *action);
+	/// Handler for clicking the Clear button.
+	void btnClearClick(Action *action);
+	/// Handler for clicking the Cancel button.
+	void btnCancelClick(Action *action);
 
 };
 

@@ -1,6 +1,6 @@
 #pragma once
 /*
- * Copyright 2010-2017 OpenXcom Developers.
+ * Copyright 2010-2018 OpenXcom Developers.
  *
  * This file is part of OpenXcom.
  *
