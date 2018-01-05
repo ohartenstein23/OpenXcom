@@ -38,7 +38,7 @@ class GeoscapeGeneratorState : public State
 {
 private:
 	Window *_window;
-	Text *_txtTitle, *_txtSeed, *_txtNumCircles;
+	Text *_txtTitle, *_txtSeed, *_txtNumCircles, *_txtError;
 	TextButton *_btnOk, *_btnClear, *_btnCancel;
 	TextEdit *_edtSeed, *_edtNumCircles;
 

@@ -81,7 +81,14 @@ void GeoscapeGenerator::generate()
 		generateGreatCircle();
 		for (std::vector<GlobeSection>::iterator j = _globeSections.begin(); j != _globeSections.end(); ++j)
 		{
-			(*j).intersectWithGreatCircle(_greatCircles.size() - 1);
+			try
+			{
+				(*j).intersectWithGreatCircle(_greatCircles.size() - 1);
+			}
+			catch (Exception& errorMsg)
+			{
+				error(errorMsg);
+			}
 		}
 
 		// Add the newly split globe sections to the list
@@ -208,7 +215,7 @@ void GeoscapeGenerator::save() const
 	{
 		std::vector<double> sectionData;
 		sectionData.clear();
-		sectionData.push_back(i.getHeightIndex());
+		//sectionData.push_back(i.getHeightIndex());
 		for (auto j = i.getIntersections()->begin(); j != i.getIntersections()->end(); ++j)
 		{
 			const std::pair<size_t, size_t> circles = (*j).first;
@@ -234,7 +241,7 @@ void GeoscapeGenerator::save() const
 }
 
 // Outputs all info to log on error
-void GeoscapeGenerator::error() const
+void GeoscapeGenerator::error(Exception errorMsg) const
 {
 	Log(LOG_ERROR) << "GeoscapeGenerator encountered an error, printing all info.";
 	Log(LOG_ERROR) << " Great Circles:";
@@ -278,7 +285,9 @@ void GeoscapeGenerator::error() const
 			Log(LOG_ERROR) << "   (" << (*j).first.first << ", " << (*j).first.second << ", " << (*j).second << ")";
 		}
 	}
-	throw Exception("Error in geoscape generator.");
+	std::ostringstream ss;
+	ss << errorMsg.what() << "\nError in geoscape generator. All data written to openxcom.log";
+	throw Exception(ss.str());
 }
 
 }

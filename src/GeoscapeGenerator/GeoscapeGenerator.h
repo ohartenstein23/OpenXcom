@@ -27,6 +27,7 @@ namespace OpenXcom
 
 class GeoscapeGeneratorState;
 class GlobeSection;
+class Exception;
 
 class GeoscapeGenerator
 {
@@ -71,7 +72,7 @@ public:
 	/// Saves the result of the geoscape generator
 	void save() const;
 	/// Saves information and throws an exception in case of an error.
-	void error() const;
+	void error(Exception errorMsg) const;
 
 };
 

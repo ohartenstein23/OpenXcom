@@ -20,8 +20,11 @@
 #include "GlobeSection.h"
 #include <algorithm>
 #include <cmath>
+#include <fstream>
+#include <sstream>
 #include "../fmath.h"
 #include "GeoscapeGenerator.h"
+#include "../Engine/Exception.h"
 #include "../Engine/Logger.h"
 
 namespace OpenXcom
@@ -73,6 +76,24 @@ void GlobeSection::setHeightIndex(int heightIndex)
  */
 void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 {
+	// If this is one of the first two sections, handle as a special case
+	if (_intersections.size() == 0)
+	{
+		_intersections.push_back(std::make_pair(std::make_pair(0, 1), 1));
+		_intersections.push_back(std::make_pair(std::make_pair(0, 1), -1));
+		_greatCircles.insert(std::make_pair(1, 1));
+
+		GlobeSection *newSection = new GlobeSection(_parent);
+		newSection->getIntersections()->push_back(std::make_pair(std::make_pair(0, 1), 1));
+		newSection->getIntersections()->push_back(std::make_pair(std::make_pair(0, 1), -1));
+		newSection->getGreatCircles()->insert(std::make_pair(0, _greatCircles[0]));
+		newSection->getGreatCircles()->insert(std::make_pair(1, -1));
+
+		_parent->getNewSections()->push_back(*newSection);
+		delete newSection;
+		return;
+	}
+
 	std::vector<std::pair<std::pair<size_t, size_t>, int>> confirmedIntersections;
 
 	// Loop over this section's great circles, finding intersections with the new circle that lie on the boundary
@@ -80,13 +101,6 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 	{
 		// Get the intersections that correspond to the current pair of circles
 		std::pair<size_t, size_t> currentCircles((*i).first, circleIndex);
-		// If this is the first set of sections, we have no intersections yet, so add the only ones to the map
-		if (_intersections.size() == 0)
-		{
-			confirmedIntersections.push_back(std::make_pair(currentCircles, 1));
-			confirmedIntersections.push_back(std::make_pair(currentCircles, -1));
-			break;
-		}
 
 		GlobeVector candidateIntersection;
 		std::map<std::pair<size_t, size_t>, GlobeVector>::iterator it = _parent->getIntersections()->find(currentCircles);
@@ -96,10 +110,9 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 		}
 		else
 		{
-			// Something went horribly wrong, error handling function goes here
-			Log(LOG_ERROR) << "GlobeSection.cpp: Something went horribly wrong, no candidateIntersection found.";
-			Log(LOG_ERROR) << "   circleIndex = " << circleIndex << ", current section's circle = " << (*i).first;
-			_parent->error();
+			std::ostringstream ss;
+			ss << "GlobeSection.cpp: no candidateIntersection found for circle pair (" << currentCircles.first << ", " << currentCircles.second << ").";
+			throw Exception(ss.str());
 		}
 	
 
@@ -124,12 +137,14 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 
 		if (outerCircles.size() != 2)
 		{
-			Log(LOG_ERROR) << "GlobeSection.cpp: Don't know how this happened, but can't find the circles that frame this intersection.";
-			for (auto& j : outerCircles)
+			std::ostringstream ss;
+			ss << "GlobeSection.cpp: No bounding circles found.\n currentCircles = (" << currentCircles.first << ", " << currentCircles.second << ")\n";
+			ss << " outerCircles = ";
+			for (auto i : outerCircles)
 			{
-				Log(LOG_ERROR) << "   " << j;
+				ss << i << " ";
 			}
-			_parent->error();
+			throw Exception(ss.str());
 		}
 	
 		// Test the two candidate intersections, determining whether they lie on the perimeter of this section
@@ -139,16 +154,10 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 		{
 			for (size_t k = 0; k < 2; ++k) // loop over the two circles for testing
 			{
-				Log(LOG_INFO) << "candidateIntersection:";
-				candidateIntersection.writeToLog();
 				GlobeVector testIntersection = candidateIntersection * direction[j];
 				GlobeVector coordinateReference(0, 0, 1); // Our reference frame is to the great circle with normal along the z direction
-				testIntersection = testIntersection.rotate(coordinateReference * _parent->getGreatCircles()->at(outerCircles.at(k)), _parent->getGreatCircles()->at(outerCircles.at(k)).lat);
-
-				Log(LOG_INFO) << "circleForRotation: " << outerCircles.at(k);
-
-				Log(LOG_INFO) << "testIntersection:";
-				testIntersection.writeToLog();
+				GlobeVector rotationAxis = coordinateReference * _parent->getGreatCircles()->at(outerCircles.at(k));
+				testIntersection = testIntersection.rotate(rotationAxis, _parent->getGreatCircles()->at(outerCircles.at(k)).lat);
 
 				// Find the testing circle in the list and get whether this section is above or below it
 				int parity = 1;
@@ -160,15 +169,12 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 				else
 				{
 					// Don't know how this happened, but handle error here
-					Log(LOG_ERROR) << "GlobeSection.cpp: Don't know how we got here, but couldn't find a great circle on it's own section!";
-					Log(LOG_ERROR) << "   j = " << j << ", k = " << k;
-					_parent->error();
+					std::ostringstream ss;
+					ss << "GlobeSection.cpp: Don't know how we got here, but couldn't find a great circle on it's own section!\n" << "   j = " << j << ", k = " << k;
+					throw Exception(ss.str());
 				}
 
-				Log(LOG_INFO) << "parity = " << parity;
-			
 				testIntersections[j] = testIntersections[j] && ((testIntersection.z * parity) > 0);
-				Log(LOG_INFO) << "testIntersections = " << testIntersections[0] << ", " << testIntersections[1];
 			}
 		
 			if (testIntersections[j]) // We found the point, only one of the two can be valid
@@ -181,83 +187,80 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 		// If we've found two confirmed intersections, that's all that can intersect this section
 		if (confirmedIntersections.size() == 2)
 		{
-			Log(LOG_INFO) << "Intersection 1: (" << confirmedIntersections.at(0).first.first << ", " << confirmedIntersections.at(0).first.second << ", " << confirmedIntersections.at(0).second << ")";
-			Log(LOG_INFO) << "Intersection 2: (" << confirmedIntersections.at(1).first.first << ", " << confirmedIntersections.at(1).first.second << ", " << confirmedIntersections.at(1).second << ")";
 			break;
 		}
 	}
 	
-	// If we've found intersection points, that means we need to create a new section
-	if (confirmedIntersections.size() != 0)
+	// If we've found a pair of intersection points, that means we need to create a new section
+	if (confirmedIntersections.size() == 2)
 	{
 		GlobeSection *newSection = new GlobeSection(_parent);
 		std::vector<std::pair<std::pair<size_t, size_t>, int>> keepIntersections;
 		std::map<size_t, int> keepCircles;
 		
 		// Split this section's data between it and the new section
-		if (_intersections.size() != 0)
+		for (std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator i = _intersections.begin(); i != _intersections.end(); ++i)
 		{
-			for (std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator i = _intersections.begin(); i != _intersections.end(); ++i)
+			const std::pair<size_t, size_t> circles = (*i).first;
+			std::map<std::pair<size_t, size_t>, GlobeVector>::const_iterator it = _parent->getIntersections()->find(circles);
+			if (it == _parent->getIntersections()->end())
 			{
-				const std::pair<size_t, size_t> circles = (*i).first;
-				std::map<std::pair<size_t, size_t>, GlobeVector>::const_iterator it = _parent->getIntersections()->find(circles);
-				GlobeVector testIntersection = (*it).second * (*i).second;
-				GlobeVector coordinateReference(0, 0, 1);
+				std::ostringstream ss;
+				ss << "GlobeSection.cpp: Could not find intersection in parent, circles = (" << circles.first << ", " << circles.second << ")";
+				throw Exception(ss.str());
+			}
+			GlobeVector testIntersection = (*it).second * (*i).second;
+			GlobeVector coordinateReference(0, 0, 1);
+			Log(LOG_INFO) << "Testing intersection";
+			testIntersection.writeToLog();
+			_parent->getGreatCircles()->at(circleIndex).writeToLog();
+
+			GlobeVector rotationAxis = coordinateReference * _parent->getGreatCircles()->at(circleIndex);
+			rotationAxis.writeToLog();
+			testIntersection = testIntersection.rotate(rotationAxis, _parent->getGreatCircles()->at(circleIndex).lat);
+			std::map<size_t, int>::iterator jt = _greatCircles.find((*i).first.first);
+			std::map<size_t, int>::iterator kt = _greatCircles.find((*i).first.second);
+			testIntersection.writeToLog();
+			if (testIntersection.z > 0)
+			{
+				keepIntersections.push_back(*i);
 			
-				testIntersection.rotate(coordinateReference * _parent->getGreatCircles()->at(circleIndex), _parent->getGreatCircles()->at(circleIndex).lat);
-				std::map<size_t, int>::iterator jt = _greatCircles.find((*i).first.first);
-				std::map<size_t, int>::iterator kt = _greatCircles.find((*i).first.second);
-				if (testIntersection.z > 0)
-				{
-					keepIntersections.push_back(*i);
-				
-					if (jt != _greatCircles.end())
-						keepCircles.insert((*jt)); // Only adds the data if it wasn't already there
-					if (kt != _greatCircles.end())
-						keepCircles.insert((*kt));				
-				}
-				else
-				{
-					newSection->getIntersections()->push_back(*i);
-				
-					if (jt != _greatCircles.end())
-						newSection->getGreatCircles()->insert((*jt));
-					if (kt != _greatCircles.end())
-						newSection->getGreatCircles()->insert((*kt));
-				}
+				if (jt != _greatCircles.end())
+					keepCircles.insert((*jt)); // Only adds the data if it wasn't already there
+				if (kt != _greatCircles.end())
+					keepCircles.insert((*kt));
+				Log(LOG_INFO) << "Kept";				
 			}
-		
-			// Push the confirmed intersections back to both this and new section
-			for(std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator i = confirmedIntersections.begin(); i != confirmedIntersections.end(); ++i)
+			else if (testIntersection.z < 0)
 			{
-				keepIntersections.push_back((*i));
 				newSection->getIntersections()->push_back(*i);
+			
+				if (jt != _greatCircles.end())
+					newSection->getGreatCircles()->insert((*jt));
+				if (kt != _greatCircles.end())
+					newSection->getGreatCircles()->insert((*kt));
+				Log(LOG_INFO) << "Sent";
 			}
-			_intersections.clear();
-			_intersections = keepIntersections;
-		
-			// Add the information about the new great circle
-			keepCircles.insert(std::make_pair(circleIndex, 1));
-			newSection->getGreatCircles()->insert(std::make_pair(circleIndex, -1));
-			_greatCircles.clear();
-			_greatCircles = keepCircles;
+			else
+			{
+				throw Exception("GlobeVector.cpp: Trying to split intersection found on newest circle!");
+			}
 		}
-		else // special case of first intersections
+	
+		// Push the confirmed intersections back to both this and new section
+		for(std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator i = confirmedIntersections.begin(); i != confirmedIntersections.end(); ++i)
 		{
-			// Push the confirmed intersections back to both this and new section
-			for(std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator i = confirmedIntersections.begin(); i != confirmedIntersections.end(); ++i)
-			{
-				keepIntersections.push_back((*i));
-				newSection->getIntersections()->push_back(*i);
-			}
-			_intersections.clear();
-			_intersections = keepIntersections;
-		
-			// Add the information about the new great circle
-			newSection->getGreatCircles()->insert(std::make_pair(0, _greatCircles[0]));
-			newSection->getGreatCircles()->insert(std::make_pair(circleIndex, -1));
-			_greatCircles.insert(std::make_pair(circleIndex, 1));
+			keepIntersections.push_back((*i));
+			newSection->getIntersections()->push_back(*i);
 		}
+		_intersections.clear();
+		_intersections = keepIntersections;
+	
+		// Add the information about the new great circle
+		keepCircles.insert(std::make_pair(circleIndex, 1));
+		newSection->getGreatCircles()->insert(std::make_pair(circleIndex, -1));
+		_greatCircles.clear();
+		_greatCircles = keepCircles;
 		
 		// Change the height information
 		newSection->setHeightIndex(_heightIndex);
@@ -275,7 +278,7 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 		GlobeVector testIntersection = (*it).second * _intersections.at(0).second;
 		GlobeVector coordinateReference(0, 0, 1);
 		
-		testIntersection.rotate(coordinateReference * _parent->getGreatCircles()->at(circleIndex), _parent->getGreatCircles()->at(circleIndex).lat);
+		testIntersection = testIntersection.rotate(coordinateReference * _parent->getGreatCircles()->at(circleIndex), _parent->getGreatCircles()->at(circleIndex).lat);
 		if (testIntersection.z > 0)
 		{
 			++_heightIndex;

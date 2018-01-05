@@ -29,6 +29,7 @@
 #include "../Interface/Slider.h"
 #include "../Interface/Frame.h"
 #include "../Engine/Action.h"
+#include "../Engine/Exception.h"
 #include "../Engine/Game.h"
 #include "../Engine/Language.h"
 #include "../Engine/LocalizedText.h"
@@ -53,6 +54,8 @@ GeoscapeGeneratorState::GeoscapeGeneratorState()
 	_txtNumCircles = new Text(100, 10, 8, 52);
 	_edtNumCircles = new TextEdit(this, 22, 10, 18, 64);
 
+	_txtError = new Text(140, 160, 170, 28);
+
 	_btnOk = new TextButton(100, 16, 8, 176);
 	_btnClear = new TextButton(100, 16, 110, 176);
 	_btnCancel = new TextButton(100, 16, 212, 176);
@@ -69,6 +72,8 @@ GeoscapeGeneratorState::GeoscapeGeneratorState()
 
 	add(_txtNumCircles, "text", "newBattleMenu");
 	add(_edtNumCircles, "text", "newBattleMenu");
+
+	add(_txtError, "text", "newBattleMenu");
 
 	add(_btnOk, "button2", "newBattleMenu");
 	add(_btnClear, "button2", "newBattleMenu");
@@ -88,6 +93,9 @@ GeoscapeGeneratorState::GeoscapeGeneratorState()
 
 	_txtNumCircles->setText(tr("STR_NUMBER_OF_CIRCLES"));
 	_edtNumCircles->onChange((ActionHandler)&GeoscapeGeneratorState::edtNumCirclesChange);
+
+	_txtError->setWordWrap(true);
+	_txtError->setText(tr("STR_GEOSCAPE_GENERATOR_ERRORS"));
 
 	_btnOk->setText(tr("STR_OK"));
 	_btnOk->onMouseClick((ActionHandler)&GeoscapeGeneratorState::btnOkClick);
@@ -124,6 +132,9 @@ void GeoscapeGeneratorState::init()
 	ss.str(std::wstring());
 	ss << _numCircles;
 	_edtNumCircles->setText(ss.str());
+
+	ss.str(std::wstring());
+	_txtError->setText(ss.str());
 }
 
 /**
@@ -234,10 +245,15 @@ void GeoscapeGeneratorState::btnOkClick(Action *)
 	try
 	{
 		_geoscapeGenerator->generate();
+		_txtError->setText(tr("STR_GEOSCAPE_GENERATOR_RAN_SUCCESS"));
+		_geoscapeGenerator->save();
+		_geoscapeGenerator->error(std::string("Successful run, writing to log."));
 	}
-	catch (...)
+	catch (Exception &errorMsg)
 	{
-		// put error message here
+		std::wstring errorStr;
+		errorStr.assign(errorMsg.what(), errorMsg.what() + strlen(errorMsg.what()));
+		_txtError->setText(errorStr);
 	}
 }
 

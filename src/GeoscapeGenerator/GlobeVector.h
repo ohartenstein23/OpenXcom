@@ -52,7 +52,7 @@ public:
 	/// Define multiplication operator
 	Quaternion operator*(const Quaternion& quat)
 	{
-		return Quaternion(c * quat.c + i * quat.i + j * quat.j + k * quat.j,
+		return Quaternion(c * quat.c - i * quat.i - j * quat.j - k * quat.k,
 			c * quat.i + i * quat.c + j * quat.k - k * quat.j,
 			c * quat.j - i * quat.k + j * quat.c + k * quat.i,
 			c * quat.k + i * quat.j - j * quat.i + k * quat.c);
@@ -62,6 +62,12 @@ public:
 	Quaternion inverse()
 	{
 		return Quaternion(c, -i, -j, -k);
+	}
+
+	/// Write values to openxcom.log
+	void writeToLog() const
+	{
+		Log(LOG_INFO) << "  (" << c << ", " << i << ", " << j << ", " << k << ")";
 	}
 };
 
@@ -139,19 +145,27 @@ public:
 	{
 		return GlobeVector(y * vec.z - z * vec.y, z * vec.x - x * vec.z, x * vec.y - y * vec.x);
 	}
+
 	/// Define scalar multiplication by int
 	GlobeVector operator*(int c) const { return GlobeVector(x*c, y*c, z*c); };
+
+	/// Get the great circle distance between this and another vector, using the dot product
+	double distance(const GlobeVector& vec)
+	{
+		return acos(x * vec.x + y * vec.y + z * vec.z);
+	}
 	
 	/// Gets a rotation of one vector around another, assume rotation angle in degrees clockwise when facing origin
 	GlobeVector rotate(const GlobeVector& vec, double theta)
 	{
 		Quaternion quat(0.0, x, y, z);
-		GlobeVector rotationVector = (*this) * vec;
+		//GlobeVector rotationVector = (*this) * vec;
 		theta *= (M_DEG_TO_RAD / 2);
-		Quaternion rotationQuat(cos(theta), sin(theta) * rotationVector.x, sin(theta) * rotationVector.y, sin(theta) * rotationVector.z);
+		Quaternion rotationQuat(cos(theta), sin(theta) * vec.x, sin(theta) * vec.y, sin(theta) * vec.z);
 		return(GlobeVector(rotationQuat * (quat * rotationQuat.inverse())));
 	}
 
+	/// Write values to openxcom.log
 	void writeToLog() const
 	{
 		Log(LOG_INFO) << "  (" << x << ", " << y << ", " << z << ", " << lat << ", " << lon << ")";
