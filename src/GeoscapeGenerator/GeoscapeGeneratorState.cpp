@@ -18,9 +18,9 @@
  */
 
 #include <sstream>
+#include <string>
 #include "GeoscapeGeneratorState.h"
 #include "GeoscapeGenerator.h"
-#include "../Engine/LocalizedText.h"
 #include "../Interface/TextButton.h"
 #include "../Interface/Window.h"
 #include "../Interface/Text.h"
@@ -28,8 +28,10 @@
 #include "../Interface/ComboBox.h"
 #include "../Interface/Slider.h"
 #include "../Interface/Frame.h"
+#include "../Engine/Action.h"
 #include "../Engine/Game.h"
 #include "../Engine/Language.h"
+#include "../Engine/LocalizedText.h"
 #include "../Engine/Options.h"
 #include "../Engine/RNG.h"
 #include "../Engine/Screen.h"
@@ -46,7 +48,10 @@ GeoscapeGeneratorState::GeoscapeGeneratorState()
 	_txtTitle = new Text(320, 17, 0, 9);
 
 	_txtSeed = new Text(100, 10, 8, 28);
-	_edtSeed = new TextEdit(this, 100, 10, 8, 12);
+	_edtSeed = new TextEdit(this, 100, 10, 18, 40);
+
+	_txtNumCircles = new Text(100, 10, 8, 52);
+	_edtNumCircles = new TextEdit(this, 22, 10, 18, 64);
 
 	_btnOk = new TextButton(100, 16, 8, 176);
 	_btnClear = new TextButton(100, 16, 110, 176);
@@ -55,11 +60,15 @@ GeoscapeGeneratorState::GeoscapeGeneratorState()
 	// Set palette for menu screen
 	setInterface("newBattleMenu");
 
+	// Add objects to screen
 	add(_window, "window", "newBattleMenu");
 	add(_txtTitle, "heading", "newBattleMenu");
 
 	add(_txtSeed, "text", "newBattleMenu");
-	add(_edtSeed, "text1", "craftInfo");
+	add(_edtSeed, "text", "newBattleMenu");
+
+	add(_txtNumCircles, "text", "newBattleMenu");
+	add(_edtNumCircles, "text", "newBattleMenu");
 
 	add(_btnOk, "button2", "newBattleMenu");
 	add(_btnClear, "button2", "newBattleMenu");
@@ -77,6 +86,9 @@ GeoscapeGeneratorState::GeoscapeGeneratorState()
 	_txtSeed->setText(tr("STR_RNG_SEED"));
 	_edtSeed->onChange((ActionHandler)&GeoscapeGeneratorState::edtSeedChange);
 
+	_txtNumCircles->setText(tr("STR_NUMBER_OF_CIRCLES"));
+	_edtNumCircles->onChange((ActionHandler)&GeoscapeGeneratorState::edtNumCirclesChange);
+
 	_btnOk->setText(tr("STR_OK"));
 	_btnOk->onMouseClick((ActionHandler)&GeoscapeGeneratorState::btnOkClick);
 	_btnOk->onKeyboardPress((ActionHandler)&GeoscapeGeneratorState::btnOkClick, Options::keyOk);
@@ -88,11 +100,13 @@ GeoscapeGeneratorState::GeoscapeGeneratorState()
 	_btnCancel->setText(tr("STR_CANCEL"));
 	_btnCancel->onMouseClick((ActionHandler)&GeoscapeGeneratorState::btnCancelClick);
 	_btnCancel->onKeyboardPress((ActionHandler)&GeoscapeGeneratorState::btnCancelClick, Options::keyCancel);
+
+	_geoscapeGenerator = new GeoscapeGenerator(this);
 }
 
 GeoscapeGeneratorState::~GeoscapeGeneratorState()
 {
-
+	delete _geoscapeGenerator;
 }
 
 /**
@@ -103,8 +117,13 @@ void GeoscapeGeneratorState::init()
 {
 	_rngSeed = RNG::getSeed();
 	std::wostringstream ss;
-	ss << "\t" << _rngSeed;
+	ss << _rngSeed;
 	_edtSeed->setText(ss.str());
+
+	_numCircles = 10;
+	ss.str(std::wstring());
+	ss << _numCircles;
+	_edtNumCircles->setText(ss.str());
 }
 
 /**
@@ -113,30 +132,113 @@ void GeoscapeGeneratorState::init()
  */
 void GeoscapeGeneratorState::edtSeedChange(Action *action)
 {
-	/*
-	if (_edtSeed->getText() == _craft->getDefaultName(_game->getLanguage()))
+	std::wostringstream ss;
+
+	if (_edtSeed->getText().size() == 0 && (action->getDetails()->key.keysym.sym == SDLK_RETURN ||
+	action->getDetails()->key.keysym.sym == SDLK_KP_ENTER))
 	{
-		_craft->setName(L"");
+		_rngSeed = RNG::getSeed();
+		ss << _rngSeed;
+		_edtSeed->setText(ss.str());
+		_edtSeed->setFocus(false);
 	}
 	else
 	{
-		_craft->setName(_edtCraft->getText());
+		std::wstring input = _edtSeed->getText();
+		size_t newSeed = 0;
+
+		// Try to convert input to a number. If it errors, return
+		// to previous RNG seed
+		try
+		{
+			newSeed = stol(input);
+
+			if (action->getDetails()->key.keysym.sym == SDLK_RETURN ||
+	action->getDetails()->key.keysym.sym == SDLK_KP_ENTER)
+			{
+				_edtSeed->setText(input);
+			}
+
+			_rngSeed = newSeed;
+		}
+		catch (...)
+		{
+			if (action->getDetails()->key.keysym.sym == SDLK_RETURN ||
+	action->getDetails()->key.keysym.sym == SDLK_KP_ENTER)
+			{
+				_rngSeed = RNG::getSeed();
+				ss << _rngSeed;
+				_edtSeed->setText(ss.str());
+			}
+		}
 	}
-	if (action->getDetails()->key.keysym.sym == SDLK_RETURN ||
-		action->getDetails()->key.keysym.sym == SDLK_KP_ENTER)
-	{
-		_edtCraft->setText(_craft->getName(_game->getLanguage()));
-	}
-	*/
 }
 
 /**
- * Starts the battle.
+ * Changes the number of circles used in the generator.
+ * @param action Pointer to an action.
+ */
+void GeoscapeGeneratorState::edtNumCirclesChange(Action *action)
+{
+	std::wostringstream ss;
+
+	if (_edtNumCircles->getText().size() == 0 && (action->getDetails()->key.keysym.sym == SDLK_RETURN ||
+	action->getDetails()->key.keysym.sym == SDLK_KP_ENTER))
+	{
+		ss << _numCircles;
+		_edtNumCircles->setText(ss.str());
+		_edtNumCircles->setFocus(false);
+	}
+	else
+	{
+		std::wstring input = _edtNumCircles->getText();
+		size_t newCircles = 0;
+
+		// Try to convert input to a number.
+		try
+		{
+			newCircles = stol(input);
+			if (newCircles > 1000)
+			{
+				newCircles = 1000;
+			}
+
+			if (action->getDetails()->key.keysym.sym == SDLK_RETURN ||
+	action->getDetails()->key.keysym.sym == SDLK_KP_ENTER)
+			{
+				ss << newCircles;
+				_edtNumCircles->setText(ss.str());
+			}
+
+			_numCircles = newCircles;
+		}
+		catch (...)
+		{
+			if (action->getDetails()->key.keysym.sym == SDLK_RETURN ||
+	action->getDetails()->key.keysym.sym == SDLK_KP_ENTER)
+			{
+				ss << _numCircles;
+				_edtNumCircles->setText(ss.str());
+			}
+		}
+	}
+}
+
+/**
+ * Starts the geoscape generator.
  * @param action Pointer to an action.
  */
 void GeoscapeGeneratorState::btnOkClick(Action *)
 {
-
+	_geoscapeGenerator->init(_rngSeed, _numCircles);
+	try
+	{
+		_geoscapeGenerator->generate();
+	}
+	catch (...)
+	{
+		// put error message here
+	}
 }
 
 /**
@@ -145,7 +247,8 @@ void GeoscapeGeneratorState::btnOkClick(Action *)
  */
 void GeoscapeGeneratorState::btnClearClick(Action *)
 {
-	
+	init();
+	_geoscapeGenerator->init(_rngSeed, _numCircles);
 }
 
 /**

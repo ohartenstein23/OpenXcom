@@ -18,6 +18,7 @@
  */
 
 #include "GeoscapeGenerator.h"
+#include "GeoscapeGeneratorState.h"
 #include <algorithm>
 #include <cmath>
 #include <fstream>
@@ -35,17 +36,26 @@
 namespace OpenXcom
 {
 
-GeoscapeGenerator::GeoscapeGenerator()
+GeoscapeGenerator::GeoscapeGenerator(GeoscapeGeneratorState *parent)
 {
-	_rngSeed = 1515083783; //RNG::getSeed();
-        RNG::setSeed(_rngSeed);
-	_numberOfCircles = 10;
+	_rngSeed = RNG::getSeed();
 }
 
 // Cleans up the GeoscapeGenerator
 GeoscapeGenerator::~GeoscapeGenerator()
 {
 	// delete variables to clean up here
+}
+
+void GeoscapeGenerator::init(size_t seed, size_t numCircles)
+{
+	_greatCircles.clear();
+	_intersections.clear();
+	_globeSections.clear();
+	_newSections.clear();
+
+	RNG::setSeed(seed);
+	_numberOfCircles = numCircles;
 }
 
 // Runs the generation

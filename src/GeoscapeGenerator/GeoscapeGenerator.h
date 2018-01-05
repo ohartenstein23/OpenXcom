@@ -25,6 +25,7 @@
 namespace OpenXcom
 {
 
+class GeoscapeGeneratorState;
 class GlobeSection;
 
 class GeoscapeGenerator
@@ -41,9 +42,12 @@ private:
 	std::vector<GlobeSection> _newSections;
 public:
 	/// Constructor
-	GeoscapeGenerator();
+	GeoscapeGenerator(GeoscapeGeneratorState *parent);
 	/// Cleans up the GeoscapeGenerator
 	~GeoscapeGenerator();
+
+	/// Inputs the data for the GeoscapeGenerator
+	void init(size_t seed, size_t numCircles);
 
 	/// Runs the GeoscapeGenerator
 	void generate();

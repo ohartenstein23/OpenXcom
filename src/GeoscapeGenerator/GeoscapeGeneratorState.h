@@ -32,16 +32,19 @@ class Text;
 class ComboBox;
 class Slider;
 class Frame;
+class Action;
 
 class GeoscapeGeneratorState : public State
 {
 private:
 	Window *_window;
-	Text *_txtTitle, *_txtSeed;
+	Text *_txtTitle, *_txtSeed, *_txtNumCircles;
 	TextButton *_btnOk, *_btnClear, *_btnCancel;
-	TextEdit *_edtSeed;
+	TextEdit *_edtSeed, *_edtNumCircles;
 
-	size_t _rngSeed;
+	size_t _rngSeed, _numCircles;
+
+	GeoscapeGenerator *_geoscapeGenerator;
 
 public:
 	/// Constructor
@@ -52,6 +55,8 @@ public:
 	void init();
 	/// Handler for changing the RNG seed using the text editor.
 	void edtSeedChange(Action *action);
+	/// Handler for changing the number of circles using the text editor.
+	void edtNumCirclesChange(Action *action);
 	/// Handler for clicking the OK button.
 	void btnOkClick(Action *action);
 	/// Handler for clicking the Clear button.
