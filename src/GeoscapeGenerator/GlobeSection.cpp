@@ -30,7 +30,7 @@
 namespace OpenXcom
 {
 
-GlobeSection::GlobeSection(GeoscapeGenerator *parent) : _parent(parent), _heightIndex(0)
+GlobeSection::GlobeSection(GeoscapeGenerator *parent) : _parent(parent), _heightIndex(0), _textureId(-1)
 {
 
 }
@@ -55,6 +55,13 @@ std::vector<std::pair<std::pair<size_t, size_t>, int>> *GlobeSection::getInterse
 	return &_intersections;
 }
 
+// Gets a pointer to the list of polygon vertices
+// Used after the first pass of the generator instead of the _intersections
+std::vector<GlobeVector> *GlobeSection::getPolygonVertices()
+{
+	return &_polygonVertices;
+}
+
 // Gets the heightIndex of the section
 int GlobeSection::getHeightIndex()
 {
@@ -68,6 +75,19 @@ void GlobeSection::setHeightIndex(int heightIndex)
 	return;
 }
 
+// Gets the textureId of the section
+int GlobeSection::getTextureId()
+{
+	return _textureId;
+}
+
+// Sets the heightIndex of the section
+void GlobeSection::setTextureId(int textureId)
+{
+	_textureId = textureId;
+	return;
+}
+
 /** Intersects a great circle with this globe section
  * Adds intersections and circle references as necessary, splits the section into
  * two and creates a new one if the circle intersects. Otherwise just changes the
@@ -76,6 +96,9 @@ void GlobeSection::setHeightIndex(int heightIndex)
  */
 void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 {
+	// Create a temporary new GlobeSection in case we split the current one
+	GlobeSection *newSection = new GlobeSection(_parent);
+
 	// If this is one of the first two sections, handle as a special case
 	if (_intersections.size() == 0)
 	{
@@ -83,7 +106,6 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 		_intersections.push_back(std::make_pair(std::make_pair(0, 1), -1));
 		_greatCircles.insert(std::make_pair(1, 1));
 
-		GlobeSection *newSection = new GlobeSection(_parent);
 		newSection->getIntersections()->push_back(std::make_pair(std::make_pair(0, 1), 1));
 		newSection->getIntersections()->push_back(std::make_pair(std::make_pair(0, 1), -1));
 		newSection->getGreatCircles()->insert(std::make_pair(0, _greatCircles[0]));
@@ -94,196 +116,216 @@ void GlobeSection::intersectWithGreatCircle(size_t circleIndex)
 		return;
 	}
 
-	std::vector<std::pair<std::pair<size_t, size_t>, int>> confirmedIntersections;
-
-	// Loop over this section's great circles, finding intersections with the new circle that lie on the boundary
-	for (std::map<size_t, int>::iterator i = _greatCircles.begin(); i != _greatCircles.end(); ++i)
+	// Loop over this section's intersections, determining whether they're over or under the newest circle
+	GlobeVector normalVector = _parent->getGreatCircles()->at(circleIndex);
+	std::vector<std::pair<std::pair<size_t, size_t>, int>> intersectionsOver, intersectionsUnder;
+	intersectionsOver.clear();
+	intersectionsUnder.clear();
+	for (std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator i = _intersections.begin(); i != _intersections.end(); ++i)
 	{
-		// Get the intersections that correspond to the current pair of circles
-		std::pair<size_t, size_t> currentCircles((*i).first, circleIndex);
+		// Get the vector pointing to the intersection
+		GlobeVector intersectionVector = (_parent->getIntersections()->find((*i).first)->second * (*i).second);
 
-		GlobeVector candidateIntersection;
-		std::map<std::pair<size_t, size_t>, GlobeVector>::iterator it = _parent->getIntersections()->find(currentCircles);
-		if (it != _parent->getIntersections()->end())
+		// Dot product test for over or under the great circle - if the dot of the point we're testing and
+		// the normal vector of the great circle is greater than 0, this means the point is 'over' the circle
+		// i.e. closer to the direction of the normal vector than the inverse of the normal vector
+		if (intersectionVector.dot(normalVector) < 0)
 		{
-			candidateIntersection = (*it).second;
+			// If the point on the section's boundary is 'under' the circle, then it should go to a new section
+			intersectionsUnder.push_back((*i));
 		}
 		else
 		{
-			std::ostringstream ss;
-			ss << "GlobeSection.cpp: no candidateIntersection found for circle pair (" << currentCircles.first << ", " << currentCircles.second << ").";
-			throw Exception(ss.str());
-		}
-	
-
-		// Loop over the intersections that define this section, getting which two circles intersect with the current one we're looking at
-		std::vector<size_t> outerCircles;
-		outerCircles.clear();
-		for (std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator j = _intersections.begin(); j != _intersections.end(); ++j)
-		{
-			if ((*j).first.first == currentCircles.first)
-			{
-				outerCircles.push_back((*j).first.second);
-			}
-		
-			if ((*j).first.second == currentCircles.first)
-			{
-				outerCircles.push_back((*j).first.first);
-			}
-		
-			if (outerCircles.size() == 2)
-				break;
-		}
-
-		if (outerCircles.size() != 2)
-		{
-			std::ostringstream ss;
-			ss << "GlobeSection.cpp: No bounding circles found.\n currentCircles = (" << currentCircles.first << ", " << currentCircles.second << ")\n";
-			ss << " outerCircles = ";
-			for (auto i : outerCircles)
-			{
-				ss << i << " ";
-			}
-			throw Exception(ss.str());
-		}
-	
-		// Test the two candidate intersections, determining whether they lie on the perimeter of this section
-		int direction[2] = {-1, 1};
-		bool testIntersections[2] = {true, true};
-		for (size_t j = 0; j < 2; ++j) // loop over inverted intersection and intersection
-		{
-			for (size_t k = 0; k < 2; ++k) // loop over the two circles for testing
-			{
-				GlobeVector testIntersection = candidateIntersection * direction[j];
-				GlobeVector coordinateReference(0, 0, 1); // Our reference frame is to the great circle with normal along the z direction
-				GlobeVector rotationAxis = coordinateReference * _parent->getGreatCircles()->at(outerCircles.at(k));
-				testIntersection = testIntersection.rotate(rotationAxis, _parent->getGreatCircles()->at(outerCircles.at(k)).lat);
-
-				// Find the testing circle in the list and get whether this section is above or below it
-				int parity = 1;
-				std::map<size_t, int>::iterator it = _greatCircles.find(outerCircles.at(k));
-				if (it != _greatCircles.end())
-				{
-					parity = (*it).second;
-				}
-				else
-				{
-					// Don't know how this happened, but handle error here
-					std::ostringstream ss;
-					ss << "GlobeSection.cpp: Don't know how we got here, but couldn't find a great circle on it's own section!\n" << "   j = " << j << ", k = " << k;
-					throw Exception(ss.str());
-				}
-
-				testIntersections[j] = testIntersections[j] && ((testIntersection.z * parity) > 0);
-			}
-		
-			if (testIntersections[j]) // We found the point, only one of the two can be valid
-			{
-				confirmedIntersections.push_back(std::make_pair(currentCircles, direction[j]));
-				break;
-			}
-		}
-	
-		// If we've found two confirmed intersections, that's all that can intersect this section
-		if (confirmedIntersections.size() == 2)
-		{
-			break;
+			intersectionsOver.push_back((*i));
 		}
 	}
-	
-	// If we've found a pair of intersection points, that means we need to create a new section
-	if (confirmedIntersections.size() == 2)
-	{
-		GlobeSection *newSection = new GlobeSection(_parent);
-		std::vector<std::pair<std::pair<size_t, size_t>, int>> keepIntersections;
-		std::map<size_t, int> keepCircles;
-		
-		// Split this section's data between it and the new section
-		for (std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator i = _intersections.begin(); i != _intersections.end(); ++i)
-		{
-			const std::pair<size_t, size_t> circles = (*i).first;
-			std::map<std::pair<size_t, size_t>, GlobeVector>::const_iterator it = _parent->getIntersections()->find(circles);
-			if (it == _parent->getIntersections()->end())
-			{
-				std::ostringstream ss;
-				ss << "GlobeSection.cpp: Could not find intersection in parent, circles = (" << circles.first << ", " << circles.second << ")";
-				throw Exception(ss.str());
-			}
-			GlobeVector testIntersection = (*it).second * (*i).second;
-			GlobeVector coordinateReference(0, 0, 1);
-			Log(LOG_INFO) << "Testing intersection";
-			testIntersection.writeToLog();
-			_parent->getGreatCircles()->at(circleIndex).writeToLog();
 
-			GlobeVector rotationAxis = coordinateReference * _parent->getGreatCircles()->at(circleIndex);
-			rotationAxis.writeToLog();
-			testIntersection = testIntersection.rotate(rotationAxis, _parent->getGreatCircles()->at(circleIndex).lat);
-			std::map<size_t, int>::iterator jt = _greatCircles.find((*i).first.first);
-			std::map<size_t, int>::iterator kt = _greatCircles.find((*i).first.second);
-			testIntersection.writeToLog();
-			if (testIntersection.z > 0)
-			{
-				keepIntersections.push_back(*i);
-			
-				if (jt != _greatCircles.end())
-					keepCircles.insert((*jt)); // Only adds the data if it wasn't already there
-				if (kt != _greatCircles.end())
-					keepCircles.insert((*kt));
-				Log(LOG_INFO) << "Kept";				
-			}
-			else if (testIntersection.z < 0)
-			{
-				newSection->getIntersections()->push_back(*i);
-			
-				if (jt != _greatCircles.end())
-					newSection->getGreatCircles()->insert((*jt));
-				if (kt != _greatCircles.end())
-					newSection->getGreatCircles()->insert((*kt));
-				Log(LOG_INFO) << "Sent";
-			}
-			else
-			{
-				throw Exception("GlobeVector.cpp: Trying to split intersection found on newest circle!");
-			}
-		}
-	
-		// Push the confirmed intersections back to both this and new section
-		for(std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator i = confirmedIntersections.begin(); i != confirmedIntersections.end(); ++i)
-		{
-			keepIntersections.push_back((*i));
-			newSection->getIntersections()->push_back(*i);
-		}
+	// If both intersectionsUnder and intersectionsOver have points, then we need to split this globe section
+	// This means we need to find where on the boundary this circle intersects the section, and put these points in both of the sections
+	if (intersectionsOver.size() != 0 && intersectionsUnder.size() != 0)
+	{
+		// Start by using the intersections to determine which great circles go where
+		// As we're iterating over them, put the intersections into the two sections
+		std::map<size_t, int> keepCircles;
+		keepCircles.clear();
+		std::map<size_t, int>::iterator it;
 		_intersections.clear();
-		_intersections = keepIntersections;
-	
-		// Add the information about the new great circle
-		keepCircles.insert(std::make_pair(circleIndex, 1));
-		newSection->getGreatCircles()->insert(std::make_pair(circleIndex, -1));
+		for (std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator i = intersectionsOver.begin(); i != intersectionsOver.end(); ++i)
+		{
+			_intersections.push_back((*i));
+			it = _greatCircles.find((*i).first.first);
+			keepCircles.insert(*it);
+			it = _greatCircles.find((*i).first.second);
+			keepCircles.insert(*it);
+		}
+
+		for (std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator i = intersectionsUnder.begin(); i != intersectionsUnder.end(); ++i)
+		{
+			newSection->getIntersections()->push_back((*i));
+			it = _greatCircles.find((*i).first.first);
+			newSection->getGreatCircles()->insert(*it);
+			it = _greatCircles.find((*i).first.second);
+			newSection->getGreatCircles()->insert(*it);
+		}
+
+		std::vector<size_t> intersectingCircles;
+		intersectingCircles.clear();
+		// If a circle is included in both the current and the new section, then it intersects the new circle we're looking at
+		for (std::map<size_t, int>::iterator i = keepCircles.begin(); i != keepCircles.end(); ++i)
+		{
+			it = newSection->getGreatCircles()->find((*i).first);
+			if (it != newSection->getGreatCircles()->end())
+			{
+				intersectingCircles.push_back((*i).first);
+			}
+		}
+
+		// Determine which direction of the new intersections is on the boundary
+		for (std::vector<size_t>::iterator i = intersectingCircles.begin(); i != intersectingCircles.end(); ++i)
+		{
+			int intersectionParity = 1;
+			GlobeVector candidateIntersection;
+			candidateIntersection = _parent->getIntersections()->find(std::make_pair((*i), circleIndex))->second;
+
+			for (std::map<size_t, int>::iterator j = _greatCircles.begin(); j != _greatCircles.end(); ++j)
+			{
+				if ((*j).first == (*i)) // Don't check the circle we're using for the intersection
+					continue;
+
+				GlobeVector testNormal = (_parent->getGreatCircles()->at((*j).first) * (*j).second);
+				if (candidateIntersection.dot(testNormal) < 0)
+				{
+					intersectionParity = -1;
+					break;
+				}
+			}
+
+			_intersections.push_back(std::make_pair(std::make_pair((*i), circleIndex), intersectionParity));
+			newSection->getIntersections()->push_back(std::make_pair(std::make_pair((*i), circleIndex), intersectionParity));
+		}
+
+		// Now that we're using _greatCircles for the proper data, copy keepCircles to the current section
 		_greatCircles.clear();
 		_greatCircles = keepCircles;
-		
-		// Change the height information
+		_greatCircles[circleIndex] = 1;
+
+		newSection->getGreatCircles()->insert(std::make_pair(circleIndex, -1));
 		newSection->setHeightIndex(_heightIndex);
 		++_heightIndex;
-		
-		// Push the new section to the generator's list of new sections
-		_parent->getNewSections()->push_back(*newSection);
 
-		delete newSection;
+		_parent->getNewSections()->push_back(*newSection);
 	}
-	else // No intersection, only need to check if we're above or below the circle
+	// If we don't need to split, then increase the height of this section if it was over the circle
+	else if (intersectionsUnder.size() == 0)
 	{
-		const std::pair<size_t, size_t> circles = _intersections.at(0).first; // only need to check one point, since all should be either above or below
-		std::map<std::pair<size_t, size_t>, GlobeVector>::const_iterator it = _parent->getIntersections()->find(circles);
-		GlobeVector testIntersection = (*it).second * _intersections.at(0).second;
-		GlobeVector coordinateReference(0, 0, 1);
-		
-		testIntersection = testIntersection.rotate(coordinateReference * _parent->getGreatCircles()->at(circleIndex), _parent->getGreatCircles()->at(circleIndex).lat);
-		if (testIntersection.z > 0)
-		{
-			++_heightIndex;
-		}
+		++_heightIndex;
 	}
+
+	delete newSection;
+}
+
+// Returns the center coordinates of this globe section
+GlobeVector GlobeSection::getCenterCoordinates()
+{
+	return _centerCoordinates;
+}
+
+// Calculate the center coordinate from the mean of the intersections
+void GlobeSection::setCenterCoordinates()
+{
+	if (_intersections.size() == 0)
+		throw Exception("GlobeSection.cpp: cannot calculate center coordinate if no intersections exist.");
+
+	double x = 0, y = 0, z = 0;
+	for (std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator i = _intersections.begin(); i != _intersections.end(); ++i)
+	{
+		GlobeVector currentIntersection = (_parent->getIntersections()->find((*i).first)->second * (*i).second);
+		x += currentIntersection.x;
+		y += currentIntersection.y;
+		z += currentIntersection.z;
+	}
+
+	_centerCoordinates = GlobeVector(x, y, z); // constructor automatically normalizes length of vector to 1
+}
+
+// Splits this section into sections with 3 or 4 intersections if it's too large or has too many intersections for a globe polygon
+void GlobeSection::splitIntoPolygons()
+{
+	// Make sure we have a center coordinate
+	if (_centerCoordinates.x == 0 && _centerCoordinates.y == 0 && _centerCoordinates.z == 0) // default constructor for GlobeVector initializes to these
+		setCenterCoordinates();
+
+	// Check to see if we need to split this section
+	if (_intersections.size() < 5)
+	{
+		GlobeSection *newSection = new GlobeSection(_parent);
+		for (std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator i = _intersections.begin(); i != _intersections.end(); ++i)
+		{
+			GlobeVector currentIntersection = (_parent->getIntersections()->find((*i).first)->second * (*i).second);
+			newSection->getPolygonVertices()->push_back(currentIntersection);
+		}
+		newSection->setHeightIndex(_heightIndex);
+		_parent->getNewSections()->push_back(*newSection);
+		delete newSection;
+		return;
+	}
+
+	// Sort the intersections counter clockwise around the center coordinate
+	std::vector<std::pair<size_t, double>> sortIndex;
+	sortIndex.clear();
+	size_t intersectionIndex = 0;
+
+	for (std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator i = _intersections.begin(); i != _intersections.end(); ++i)
+	{
+		GlobeVector currentIntersection = (_parent->getIntersections()->find((*i).first)->second * (*i).second);
+
+		// Rotate all the intersections such that the center intersection would lie along the z axis - this makes it possible to just sort by longitude
+		currentIntersection = currentIntersection.rotate((GlobeVector(0, 0, 1) * _centerCoordinates), _centerCoordinates.lat);
+		sortIndex.push_back(std::make_pair(intersectionIndex, currentIntersection.lon));
+		++intersectionIndex;
+	}
+
+	// Sort by the longitudes of the rotated vectors
+	std::sort(sortIndex.begin(), sortIndex.end(), [](std::pair<size_t, double> index1, std::pair<size_t, double> index2) {return index1.second < index2.second; });
+	std::vector<GlobeVector> sortedIntersections;
+	sortedIntersections.clear();
+	for (std::vector<std::pair<size_t, double>>::iterator i = sortIndex.begin(); i != sortIndex.end(); ++i)
+	{
+		GlobeVector currentIntersection = (_parent->getIntersections()->find(_intersections.at((*i).first).first)->second * _intersections.at((*i).first).second);
+		sortedIntersections.push_back(currentIntersection);
+	}
+
+	// Now that we have the sorted intersections, split the section by making tris and quads using the center coordinates and points along the perimeter of the section
+	sortedIntersections.push_back(sortedIntersections.at(0));
+	size_t startIndex = 0;
+	size_t endIndex = 1;
+	while (startIndex < sortedIntersections.size() - 1)
+	{
+		// Determine whether to make a tri or a quad by the angle made between the start point on the section, the center coordinate, and the end point
+		// If it's too small, add one more point
+		if (endIndex < sortedIntersections.size() - 1) // can only do this if we've not ran out of points
+		{
+			GlobeVector normalVector1 = sortedIntersections.at(startIndex) * _centerCoordinates;
+			GlobeVector normalVector2 = _centerCoordinates * sortedIntersections.at(endIndex);
+			double angle = normalVector1.distance(normalVector2); // measured in radians
+			if (angle < (M_PI / 6)) // yes, I didn't want to include my conversions here, big deal. pi/6 = 30 degrees
+				++endIndex;
+		}
+
+		GlobeSection *newSection = new GlobeSection(_parent);
+		newSection->getPolygonVertices()->push_back(_centerCoordinates);
+		for (size_t i = startIndex; i != endIndex + 1; ++i)
+		{
+			newSection->getPolygonVertices()->push_back(sortedIntersections.at(i));
+		}
+
+		newSection->setHeightIndex(_heightIndex);
+		_parent->getNewSections()->push_back(*newSection);
+		delete newSection;
+
+		startIndex = endIndex;
+		++endIndex;
+	}	
 }
 
 }

@@ -98,6 +98,34 @@ void GeoscapeGenerator::generate()
 		}
 		_newSections.clear();
 	}
+
+	// Now that we have the sections, split them into viable polygons for the globe ruleset
+	for (std::vector<GlobeSection>::iterator i = _globeSections.begin(); i != _globeSections.end(); ++i)
+	{
+		try
+		{
+			(*i).splitIntoPolygons();
+		}
+		catch (Exception& errorMsg)
+		{
+			error(errorMsg);
+		}
+	}
+
+	// Convert the polygon sections' height data into globe textures
+	// Start by sorting the sections according to height
+	std::sort(_newSections.begin(), _newSections.end(), [](GlobeSection section1, GlobeSection section2) {return section1.getHeightIndex() < section2.getHeightIndex(); });
+
+	// Fill up polygons with textures - first set of sections up to the chosen water percentage shouldn't change from -1
+	double waterPercentage = 0.4f;
+	for (size_t i = 0; i < _newSections.size(); ++i)
+	{
+		double percent = (double) i / (double) (_newSections.size() -1);
+		if (percent > waterPercentage)
+		{
+			_newSections.at(i).setTextureId(0);
+		}
+	}
 }
 
 // Gets a random latitude
@@ -134,9 +162,8 @@ void GeoscapeGenerator::generateGreatCircle()
 
 		for (std::vector<GlobeVector>::iterator i = _greatCircles.begin(); i != _greatCircles.end(); ++i)
 		{
-			// If the normal vector is within 0.01 degrees in both angles, generate a new normal vector
-			if ((std::abs((*i).lat - normalVector.lat) < 0.01)
-				&& (std::abs((*i).lon - normalVector.lon) < 0.01))
+			// If the normal vector is within 0.01 arc length, generate a new normal vector
+			if (normalVector.distance((*i)) < 0.01)
 			{
 				uniqueCircle = false;
 				break;
@@ -165,7 +192,7 @@ void GeoscapeGenerator::generateGreatCircle()
 void GeoscapeGenerator::intersectGreatCircles(size_t circle1, size_t circle2)
 {
 	// The intersection of two great circles lies along the line defined by the cross-product of their normal vectors
-	GlobeVector intersection = _greatCircles.at(circle2) * _greatCircles.at(circle1);
+	GlobeVector intersection = _greatCircles.at(circle1) * _greatCircles.at(circle2);
 
 	// Since the pair of intersections are related by an inversion through the origin (multiplication of vector by -1
 	// for unit vectors), only need to store the one vector
@@ -211,18 +238,18 @@ void GeoscapeGenerator::save() const
 	out << YAML::BeginDoc;
 	YAML::Node node;
 
-	for (auto i : _globeSections)
+	for (auto i : _newSections)
 	{
+		if (i.getTextureId() == -1)
+			continue;
+
 		std::vector<double> sectionData;
 		sectionData.clear();
-		//sectionData.push_back(i.getHeightIndex());
-		for (auto j = i.getIntersections()->begin(); j != i.getIntersections()->end(); ++j)
+		sectionData.push_back(i.getTextureId());
+		for (auto j = i.getPolygonVertices()->begin(); j != i.getPolygonVertices()->end(); ++j)
 		{
-			const std::pair<size_t, size_t> circles = (*j).first;
-			std::map<std::pair<size_t, size_t>, GlobeVector>::const_iterator it = _intersections.find(circles);
-			GlobeVector coordinates = (*it).second * (*j).second;
-			sectionData.push_back(coordinates.lat);
-			sectionData.push_back(coordinates.lon);
+			sectionData.push_back((*j).lat);
+			sectionData.push_back((*j).lon);
 		}
 		
 		node["globe"]["polygons"].push_back(sectionData);

@@ -1,4 +1,4 @@
-fileToRead = fopen("~/Downloads/OpenXcom/user/xcom1/geoscapeGeneratorOutput.yml");
+fileToRead = fopen("~/OpenXcom/user/xcom1/geoscapeGeneratorOutput.yml");
 intersections = greatCircles = {};
 currentLine = 0;
 currentNode = "";
@@ -29,19 +29,23 @@ endwhile
 
 fclose(fileToRead);
 
-close;
-hold on;
-drawSphere([0 0 0 1]);
+for (m = 1:length(intersections))
 
-for (m = 1:length(greatCircles))
-  drawCircle3d([0 0 0 1 90-greatCircles{m}(4) greatCircles{m}(5)]);
-endfor
+  close;
+  hold on;
+  drawSphere([0 0 0 1]);
 
-for (m = sectionIndex)
+  for (n = 1:length(greatCircles))
+    drawCircle3d([0 0 0 1 90-greatCircles{n}(4) greatCircles{n}(5)], 'linewidth', 2);
+  endfor
+
   for (n = 1:length(intersections{m})/2)
     [x y z] = globeVectorFromAngles(intersections{m}(2*n-1), intersections{m}(2*n));
-    drawPoint3d([x y z]);
+    drawPoint3d([x y z], 'markerfacecolor', 'auto', 'markersize', 10);
   endfor
+  xlabel('x'); ylabel('y'); zlabel('z');
+  hold off;
+
+  pause;
+
 endfor
-xlabel('x'); ylabel('y'); zlabel('z');
-hold off;

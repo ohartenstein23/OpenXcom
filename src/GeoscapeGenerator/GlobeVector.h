@@ -149,10 +149,17 @@ public:
 	/// Define scalar multiplication by int
 	GlobeVector operator*(int c) const { return GlobeVector(x*c, y*c, z*c); };
 
+	/// Get the dot product of this globe vector and another
+	double dot(const GlobeVector& vec)
+	{
+		return (x * vec.x + y * vec.y + z * vec.z);
+	}
+
 	/// Get the great circle distance between this and another vector, using the dot product
 	double distance(const GlobeVector& vec)
 	{
-		return acos(x * vec.x + y * vec.y + z * vec.z);
+		double dotProduct = dot(vec);
+		return acos(dotProduct);
 	}
 	
 	/// Gets a rotation of one vector around another, assume rotation angle in degrees clockwise when facing origin

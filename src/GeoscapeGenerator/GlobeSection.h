@@ -33,8 +33,9 @@ private:
 	GeoscapeGenerator *_parent;
 	std::map<size_t, int> _greatCircles;
 	std::vector<std::pair<std::pair<size_t, size_t>, int>> _intersections;
-	int _heightIndex;
+	int _heightIndex, _textureId;
 	GlobeVector _centerCoordinates;
+	std::vector<GlobeVector> _polygonVertices;
 
 public:
 	/// Constructor
@@ -46,12 +47,24 @@ public:
 	std::map<size_t, int> *getGreatCircles();
 	/// Gets a pointer to the list of intersections
 	std::vector<std::pair<std::pair<size_t, size_t>, int>> *getIntersections();
+	/// Gets a pointer to the list of polygon vertices
+	std::vector<GlobeVector> *getPolygonVertices();
 	/// Gets the heightIndex of the section
 	int getHeightIndex();
 	/// Sets the heightIndex of the section
 	void setHeightIndex(int heightIndex);
+	/// Gets the textureId of the section
+	int getTextureId();
+	/// Sets the textureId of the section
+	void setTextureId(int textureId);
 	/// Intersects a great circle with this globe section
 	void intersectWithGreatCircle(size_t circleIndex);
+	/// Gets the center coordinates of the section
+	GlobeVector getCenterCoordinates();
+	/// Sets the center coordinate of the section from its intersections
+	void setCenterCoordinates();
+	/// Splits the section into polygons for saving as a globe ruleset
+	void splitIntoPolygons();
 
 };
 
