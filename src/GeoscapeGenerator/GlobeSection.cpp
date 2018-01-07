@@ -255,19 +255,28 @@ void GlobeSection::splitIntoPolygons()
 	if (_centerCoordinates.x == 0 && _centerCoordinates.y == 0 && _centerCoordinates.z == 0) // default constructor for GlobeVector initializes to these
 		setCenterCoordinates();
 
-	// Check to see if we need to split this section
-	if (_intersections.size() < 5)
+	// If this section contains one of the poles, change the center for splitting to there and make sure it's split
+	bool containsNorthPole = true, containsSouthPole = true;
+	for (std::map<size_t, int>::iterator i = _greatCircles.begin(); i != _greatCircles.end(); ++i)
 	{
-		GlobeSection *newSection = new GlobeSection(_parent);
-		for (std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator i = _intersections.begin(); i != _intersections.end(); ++i)
-		{
-			GlobeVector currentIntersection = (_parent->getIntersections()->find((*i).first)->second * (*i).second);
-			newSection->getPolygonVertices()->push_back(currentIntersection);
-		}
-		newSection->setHeightIndex(_heightIndex);
-		_parent->getNewSections()->push_back(*newSection);
-		delete newSection;
-		return;
+		GlobeVector normalVector = (_parent->getGreatCircles()->at((*i).first) * (*i).second);
+		containsNorthPole = containsNorthPole && (normalVector.dot(GlobeVector(0, 0, 1)) > 0);
+		containsSouthPole = containsSouthPole && (normalVector.dot(GlobeVector(0, 0, -1)) > 0);
+		if (!containsNorthPole && !containsSouthPole)
+			break;
+	}
+
+	if (containsNorthPole)
+	{
+		_centerCoordinates = GlobeVector(0, 0, 1);
+	}
+	if (containsSouthPole)
+	{
+		_centerCoordinates = GlobeVector(0, 0, -1);
+	}
+	if (containsNorthPole && containsSouthPole) // There must be some kind of anomaly on this globe!
+	{
+		throw Exception("GlobeSection.cpp: You somehow managed to find a section that contains both north and south poles.");
 	}
 
 	// Sort the intersections counter clockwise around the center coordinate
@@ -278,7 +287,6 @@ void GlobeSection::splitIntoPolygons()
 	for (std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator i = _intersections.begin(); i != _intersections.end(); ++i)
 	{
 		GlobeVector currentIntersection = (_parent->getIntersections()->find((*i).first)->second * (*i).second);
-
 		// Rotate all the intersections such that the center intersection would lie along the z axis - this makes it possible to just sort by longitude
 		currentIntersection = currentIntersection.rotate((GlobeVector(0, 0, 1) * _centerCoordinates), _centerCoordinates.lat);
 		sortIndex.push_back(std::make_pair(intersectionIndex, currentIntersection.lon));
@@ -293,6 +301,20 @@ void GlobeSection::splitIntoPolygons()
 	{
 		GlobeVector currentIntersection = (_parent->getIntersections()->find(_intersections.at((*i).first).first)->second * _intersections.at((*i).first).second);
 		sortedIntersections.push_back(currentIntersection);
+	}
+
+	// Check to see if we need to split this section - if not, just use the sorted intersections
+	if (_intersections.size() < 5 && !(containsNorthPole || containsSouthPole))
+	{
+		GlobeSection *newSection = new GlobeSection(_parent);
+		for (std::vector<GlobeVector>::iterator i = sortedIntersections.begin(); i != sortedIntersections.end(); ++i)
+		{
+			newSection->getPolygonVertices()->push_back((*i));
+		}
+		newSection->setHeightIndex(_heightIndex);
+		_parent->getNewSections()->push_back(*newSection);
+		delete newSection;
+		return;
 	}
 
 	// Now that we have the sorted intersections, split the section by making tris and quads using the center coordinates and points along the perimeter of the section

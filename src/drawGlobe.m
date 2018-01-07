@@ -36,13 +36,17 @@ for (m = 1:length(intersections))
   drawSphere([0 0 0 1]);
 
   for (n = 1:length(greatCircles))
-    drawCircle3d([0 0 0 1 90-greatCircles{n}(4) greatCircles{n}(5)], 'linewidth', 2);
+    drawCircle3d([0 0 0 1 90-greatCircles{n}(4) greatCircles{n}(5)], 'linewidth', 0.5);
   endfor
 
-  for (n = 1:length(intersections{m})/2)
-    [x y z] = globeVectorFromAngles(intersections{m}(2*n-1), intersections{m}(2*n));
-    drawPoint3d([x y z], 'markerfacecolor', 'auto', 'markersize', 10);
+  poly = [];
+  for (n = 2:2:length(intersections{m})-1)
+    [x y z] = globeVectorFromAngles(intersections{m}(n), intersections{m}(n+1));
+  #  drawPoint3d([x y z], 'markerfacecolor', 'auto', 'markersize', 10);
+    poly = [poly; x, y, z];
   endfor
+  drawSphericalPolygon([0 0 0 1], poly, 'linewidth', 2);
+  
   xlabel('x'); ylabel('y'); zlabel('z');
   hold off;
 

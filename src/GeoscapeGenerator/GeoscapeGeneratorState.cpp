@@ -247,7 +247,6 @@ void GeoscapeGeneratorState::btnOkClick(Action *)
 		_geoscapeGenerator->generate();
 		_txtError->setText(tr("STR_GEOSCAPE_GENERATOR_RAN_SUCCESS"));
 		_geoscapeGenerator->save();
-		_geoscapeGenerator->error(std::string("Successful run, writing to log."));
 	}
 	catch (Exception &errorMsg)
 	{

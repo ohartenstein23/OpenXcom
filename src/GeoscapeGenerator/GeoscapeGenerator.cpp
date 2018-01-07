@@ -248,19 +248,19 @@ void GeoscapeGenerator::save() const
 		sectionData.push_back(i.getTextureId());
 		for (auto j = i.getPolygonVertices()->begin(); j != i.getPolygonVertices()->end(); ++j)
 		{
-			sectionData.push_back((*j).lat);
 			sectionData.push_back((*j).lon);
+			sectionData.push_back((*j).lat);
 		}
 		
 		node["globe"]["polygons"].push_back(sectionData);
 	}
 	node["RNGSeed"] = _rngSeed;
 
-	for (auto i : _greatCircles)
+	/*for (auto i : _greatCircles)
 	{
 		std::vector<double> coords = {i.x, i.y, i.z, i.lat, i.lon};
 		node["globe"]["greatCircles"].push_back(coords);
-	}
+	}*/
 
 	out << node;
 	sav << out.c_str();
@@ -268,50 +268,55 @@ void GeoscapeGenerator::save() const
 }
 
 // Outputs all info to log on error
+// Formatted for easy reading by Octave
 void GeoscapeGenerator::error(Exception errorMsg) const
 {
 	Log(LOG_ERROR) << "GeoscapeGenerator encountered an error, printing all info.";
-	Log(LOG_ERROR) << " Great Circles:";
+	Log(LOG_ERROR) << " greatCircles = [";
 	for (auto i : _greatCircles)
 	{
 		i.writeToLog();
 	}
-	Log(LOG_ERROR) << " Intersections:";
+	Log(LOG_ERROR) << "];";
+	Log(LOG_ERROR) << " intersections = [";
 	for (auto i : _intersections)
 	{
-		Log(LOG_ERROR) << "  (" << i.first.first << ", " << i.first.second << ")";
+		Log(LOG_ERROR) << "  #(" << i.first.first << ", " << i.first.second << "];";
 		i.second.writeToLog();
 	}
-	Log(LOG_ERROR) << " GlobeSections:";
+	Log(LOG_ERROR) << "];";
+	Log(LOG_ERROR) << " globeSections = [";
 	size_t sectionNumber = 0;
 	for (auto i : _globeSections)
 	{
-		Log(LOG_ERROR) << "  Section " << sectionNumber << ":";
+		Log(LOG_ERROR) << "  #Section " << sectionNumber << ":";
 		sectionNumber++;
 		for (auto j = i.getGreatCircles()->begin(); j != i.getGreatCircles()->end(); ++j)
 		{
-			Log(LOG_ERROR) << "   (" << (*j).first << ", " << (*j).second << ")";
+			Log(LOG_ERROR) << "   [" << (*j).first << ", " << (*j).second << "];";
 		}
 		for (auto j = i.getIntersections()->begin(); j != i.getIntersections()->end(); ++j)
 		{
-			Log(LOG_ERROR) << "   (" << (*j).first.first << ", " << (*j).first.second << ", " << (*j).second << ")";
+			Log(LOG_ERROR) << "   [" << (*j).first.first << ", " << (*j).first.second << ", " << (*j).second << "];";
 		}
 	}
-	Log(LOG_ERROR) << " NewSections:";
+	Log(LOG_ERROR) << "];";
+	Log(LOG_ERROR) << " newSections = [";
 	sectionNumber = 0;
 	for (auto i : _newSections)
 	{
-		Log(LOG_ERROR) << "  Section " << sectionNumber << ":";
+		Log(LOG_ERROR) << "  #Section " << sectionNumber << ":";
 		sectionNumber++;
 		for (auto j = i.getGreatCircles()->begin(); j != i.getGreatCircles()->end(); ++j)
 		{
-			Log(LOG_ERROR) << "   (" << (*j).first << ", " << (*j).second << ")";
+			Log(LOG_ERROR) << "   [" << (*j).first << ", " << (*j).second << "];";
 		}
 		for (auto j = i.getIntersections()->begin(); j != i.getIntersections()->end(); ++j)
 		{
-			Log(LOG_ERROR) << "   (" << (*j).first.first << ", " << (*j).first.second << ", " << (*j).second << ")";
+			Log(LOG_ERROR) << "   [" << (*j).first.first << ", " << (*j).first.second << ", " << (*j).second << "];";
 		}
 	}
+	Log(LOG_ERROR) << "];";
 	std::ostringstream ss;
 	ss << errorMsg.what() << "\nError in geoscape generator. All data written to openxcom.log";
 	throw Exception(ss.str());
