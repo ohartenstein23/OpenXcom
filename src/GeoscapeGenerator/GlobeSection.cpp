@@ -30,7 +30,7 @@
 namespace OpenXcom
 {
 
-GlobeSection::GlobeSection(GeoscapeGenerator *parent) : _parent(parent), _heightIndex(0), _textureId(-1)
+GlobeSection::GlobeSection(GeoscapeGenerator *parent) : _parent(parent), _heightIndex(0), _textureId(0)
 {
 
 }
@@ -233,16 +233,30 @@ GlobeVector GlobeSection::getCenterCoordinates()
 // Calculate the center coordinate from the mean of the intersections
 void GlobeSection::setCenterCoordinates()
 {
-	if (_intersections.size() == 0)
-		throw Exception("GlobeSection.cpp: cannot calculate center coordinate if no intersections exist.");
-
 	double x = 0, y = 0, z = 0;
-	for (std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator i = _intersections.begin(); i != _intersections.end(); ++i)
+
+	if (_intersections.size() != 0)
 	{
-		GlobeVector currentIntersection = (_parent->getIntersections()->find((*i).first)->second * (*i).second);
-		x += currentIntersection.x;
-		y += currentIntersection.y;
-		z += currentIntersection.z;
+		for (std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator i = _intersections.begin(); i != _intersections.end(); ++i)
+		{
+			GlobeVector currentIntersection = (_parent->getIntersections()->find((*i).first)->second * (*i).second);
+			x += currentIntersection.x;
+			y += currentIntersection.y;
+			z += currentIntersection.z;
+		}
+	}
+	else if (_polygonVertices.size() != 0)
+	{
+		for (std::vector<GlobeVector>::iterator i = _polygonVertices.begin(); i != _polygonVertices.end(); ++i)
+		{
+			x += (*i).x;
+			y += (*i).y;
+			z += (*i).z;
+		}
+	}
+	else
+	{
+		throw Exception("GlobeSection.cpp: cannot calculate center coordinate if no intersections exist.");
 	}
 
 	_centerCoordinates = GlobeVector(x, y, z); // constructor automatically normalizes length of vector to 1
@@ -252,8 +266,7 @@ void GlobeSection::setCenterCoordinates()
 void GlobeSection::splitIntoPolygons()
 {
 	// Make sure we have a center coordinate
-	if (_centerCoordinates.x == 0 && _centerCoordinates.y == 0 && _centerCoordinates.z == 0) // default constructor for GlobeVector initializes to these
-		setCenterCoordinates();
+	setCenterCoordinates();
 
 	// If this section contains one of the poles, change the center for splitting to there and make sure it's split
 	bool containsNorthPole = true, containsSouthPole = true;
@@ -269,10 +282,12 @@ void GlobeSection::splitIntoPolygons()
 	if (containsNorthPole)
 	{
 		_centerCoordinates = GlobeVector(0, 0, 1);
+		Log(LOG_INFO) << "Found north pole";
 	}
 	if (containsSouthPole)
 	{
 		_centerCoordinates = GlobeVector(0, 0, -1);
+		Log(LOG_INFO) << "Found south pole";
 	}
 	if (containsNorthPole && containsSouthPole) // There must be some kind of anomaly on this globe!
 	{
@@ -280,34 +295,36 @@ void GlobeSection::splitIntoPolygons()
 	}
 
 	// Sort the intersections counter clockwise around the center coordinate
-	std::vector<std::pair<size_t, double>> sortIndex;
-	sortIndex.clear();
-	size_t intersectionIndex = 0;
+	//std::vector<std::pair<size_t, double>> sortIndex;
+	//sortIndex.clear();
+	//size_t intersectionIndex = 0;
 
 	for (std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator i = _intersections.begin(); i != _intersections.end(); ++i)
 	{
 		GlobeVector currentIntersection = (_parent->getIntersections()->find((*i).first)->second * (*i).second);
+		_polygonVertices.push_back(currentIntersection);
 		// Rotate all the intersections such that the center intersection would lie along the z axis - this makes it possible to just sort by longitude
-		currentIntersection = currentIntersection.rotate((GlobeVector(0, 0, 1) * _centerCoordinates), _centerCoordinates.lat);
-		sortIndex.push_back(std::make_pair(intersectionIndex, currentIntersection.lon));
-		++intersectionIndex;
+		//currentIntersection = currentIntersection.rotate((GlobeVector(0, 0, 1) * _centerCoordinates), -1 * _centerCoordinates.lat);
+		//sortIndex.push_back(std::make_pair(intersectionIndex, currentIntersection.lon));
+		//++intersectionIndex;
 	}
+	sortPolygonVertices();
 
 	// Sort by the longitudes of the rotated vectors
-	std::sort(sortIndex.begin(), sortIndex.end(), [](std::pair<size_t, double> index1, std::pair<size_t, double> index2) {return index1.second < index2.second; });
-	std::vector<GlobeVector> sortedIntersections;
-	sortedIntersections.clear();
-	for (std::vector<std::pair<size_t, double>>::iterator i = sortIndex.begin(); i != sortIndex.end(); ++i)
-	{
-		GlobeVector currentIntersection = (_parent->getIntersections()->find(_intersections.at((*i).first).first)->second * _intersections.at((*i).first).second);
-		sortedIntersections.push_back(currentIntersection);
-	}
+	//std::sort(sortIndex.begin(), sortIndex.end(), [](std::pair<size_t, double> index1, std::pair<size_t, double> index2) {return index1.second < index2.second; });
+	//std::vector<GlobeVector> sortedIntersections;
+	//sortedIntersections.clear();
+	//for (std::vector<std::pair<size_t, double>>::iterator i = sortIndex.begin(); i != sortIndex.end(); ++i)
+	//{
+	//	GlobeVector currentIntersection = (_parent->getIntersections()->find(_intersections.at((*i).first).first)->second * _intersections.at((*i).first).second);
+	//	sortedIntersections.push_back(currentIntersection);
+	//}
 
 	// Check to see if we need to split this section - if not, just use the sorted intersections
-	if (_intersections.size() < 5 && !(containsNorthPole || containsSouthPole))
+	if (_polygonVertices.size() == 3 && !(containsNorthPole || containsSouthPole))
 	{
 		GlobeSection *newSection = new GlobeSection(_parent);
-		for (std::vector<GlobeVector>::iterator i = sortedIntersections.begin(); i != sortedIntersections.end(); ++i)
+		for (std::vector<GlobeVector>::iterator i = _polygonVertices.begin(); i != _polygonVertices.end(); ++i)
 		{
 			newSection->getPolygonVertices()->push_back((*i));
 		}
@@ -317,37 +334,44 @@ void GlobeSection::splitIntoPolygons()
 		return;
 	}
 
-	// Now that we have the sorted intersections, split the section by making tris and quads using the center coordinates and points along the perimeter of the section
-	sortedIntersections.push_back(sortedIntersections.at(0));
-	size_t startIndex = 0;
-	size_t endIndex = 1;
-	while (startIndex < sortedIntersections.size() - 1)
+	// Now that we have the sorted intersections, split the section by making triangles using the center coordinates and points along the perimeter of the section
+	for (std::vector<GlobeVector>::iterator i = _polygonVertices.begin(); i != _polygonVertices.end() - 1; ++i)
 	{
-		// Determine whether to make a tri or a quad by the angle made between the start point on the section, the center coordinate, and the end point
-		// If it's too small, add one more point
-		if (endIndex < sortedIntersections.size() - 1) // can only do this if we've not ran out of points
-		{
-			GlobeVector normalVector1 = sortedIntersections.at(startIndex) * _centerCoordinates;
-			GlobeVector normalVector2 = _centerCoordinates * sortedIntersections.at(endIndex);
-			double angle = normalVector1.distance(normalVector2); // measured in radians
-			if (angle < (M_PI / 6)) // yes, I didn't want to include my conversions here, big deal. pi/6 = 30 degrees
-				++endIndex;
-		}
 
 		GlobeSection *newSection = new GlobeSection(_parent);
 		newSection->getPolygonVertices()->push_back(_centerCoordinates);
-		for (size_t i = startIndex; i != endIndex + 1; ++i)
-		{
-			newSection->getPolygonVertices()->push_back(sortedIntersections.at(i));
-		}
+		newSection->getPolygonVertices()->push_back((*i));
+		newSection->getPolygonVertices()->push_back(*(i + 1));
 
 		newSection->setHeightIndex(_heightIndex);
 		_parent->getNewSections()->push_back(*newSection);
 		delete newSection;
-
-		startIndex = endIndex;
-		++endIndex;
 	}	
+}
+
+void GlobeSection::sortPolygonVertices()
+{
+	// Make sure we have a center coordinate
+	if (_centerCoordinates.x == 0 && _centerCoordinates.y == 0 && _centerCoordinates.z == 0) // default constructor for GlobeVector initializes to these
+		setCenterCoordinates();
+
+	std::vector<std::pair<size_t, double>> sortIndex;
+	sortIndex.clear();
+	for (size_t i = 0; i < _polygonVertices.size(); ++i)
+	{
+		sortIndex.push_back(std::make_pair(i, atan2(_polygonVertices.at(i).lat - _centerCoordinates.lat, _polygonVertices.at(i).lon - _centerCoordinates.lon)));
+	}
+
+	std::sort(sortIndex.begin(), sortIndex.end(), [](std::pair<size_t, double> index1, std::pair<size_t, double> index2) {return index1.second > index2.second; });
+	std::vector<GlobeVector> sortedIntersections;
+	sortedIntersections.clear();
+	for (std::vector<std::pair<size_t, double>>::iterator i = sortIndex.begin(); i != sortIndex.end(); ++i)
+	{
+		sortedIntersections.push_back(_polygonVertices.at((*i).first));
+	}
+
+	_polygonVertices.clear();
+	_polygonVertices = sortedIntersections;
 }
 
 }

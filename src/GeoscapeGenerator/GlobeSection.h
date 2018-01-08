@@ -65,6 +65,8 @@ public:
 	void setCenterCoordinates();
 	/// Splits the section into polygons for saving as a globe ruleset
 	void splitIntoPolygons();
+	/// Sorts the polygon vertices counterclockwise according to lat, lon coordinates
+	void sortPolygonVertices();
 
 };
 
