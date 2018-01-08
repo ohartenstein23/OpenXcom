@@ -112,21 +112,20 @@ void GeoscapeGenerator::generate()
 		}
 	}
 
-	// Convert the polygon sections' height data into globe textures
-	// Start by sorting the sections according to height
-	//std::sort(_newSections.begin(), _newSections.end(), [](GlobeSection section1, GlobeSection section2) {return section1.getHeightIndex() < section2.getHeightIndex(); });
-
 	// Fill up polygons with textures - first set of sections up to the chosen water percentage shouldn't change from -1
-	//double waterPercentage = 0.4f;
-	//for (std::vector<GlobeSection>::iterator i = _newSections.begin(); i != _newSections.end(); ++i)
-	//{
-		/*double percent = (double) i / (double) (_newSections.size() -1);
+	int waterPercentage = 40 * 10; // 40 percent, precise to 40.0
+	for (std::vector<GlobeSection>::iterator i = _newSections.begin(); i != _newSections.end(); ++i)
+	{
+		int percent = i->getHeightIndex() * 1000 / _numberOfCircles;
 		if (percent > waterPercentage)
 		{
-			_newSections.at(i).setTextureId(0);
-		}*/
-	//	i->setTextureId(i->getHeightIndex() * 11 / _numberOfCircles);
-	//}
+			i->setTextureId(i->getHeightIndex() * 11 / _numberOfCircles);
+		}
+		else
+		{
+			i->setTextureId(-1);
+		}
+	}
 }
 
 // Gets a random latitude

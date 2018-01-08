@@ -1,4 +1,4 @@
-fileToRead = fopen("~/OpenXcom/user/xcom1/geoscapeGeneratorOutput.yml");
+fileToRead = fopen("~/Downloads/OpenXcom/user/xcom1/geoscapeGeneratorOutput.yml");
 intersections = greatCircles = {};
 currentLine = 0;
 currentNode = "";
@@ -53,6 +53,8 @@ fclose(fileToRead);
 #  pause;
 
 #endfor
+colors = {"blue", "black", "cyan", "green", "magenta", "red", "white", "yellow"};
+
 close;
 hold on; axis([0 360 -90 90])
 for m = 1:length(intersections)
@@ -60,6 +62,6 @@ for m = 1:length(intersections)
   if (!(any(xx > 350) && any(xx < 10)))
     angles = atan2(xx - mean(xx), yy - mean(yy));
     [ss ix] = sort(angles);
-    patch(xx(ix), yy(ix), 'green')
+    patch(xx(ix), yy(ix), colors{randi([1 length(colors)])})
   endif
 endfor

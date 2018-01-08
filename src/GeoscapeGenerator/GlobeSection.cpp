@@ -282,43 +282,22 @@ void GlobeSection::splitIntoPolygons()
 	if (containsNorthPole)
 	{
 		_centerCoordinates = GlobeVector(0, 0, 1);
-		Log(LOG_INFO) << "Found north pole";
 	}
 	if (containsSouthPole)
 	{
 		_centerCoordinates = GlobeVector(0, 0, -1);
-		Log(LOG_INFO) << "Found south pole";
 	}
 	if (containsNorthPole && containsSouthPole) // There must be some kind of anomaly on this globe!
 	{
 		throw Exception("GlobeSection.cpp: You somehow managed to find a section that contains both north and south poles.");
 	}
 
-	// Sort the intersections counter clockwise around the center coordinate
-	//std::vector<std::pair<size_t, double>> sortIndex;
-	//sortIndex.clear();
-	//size_t intersectionIndex = 0;
-
 	for (std::vector<std::pair<std::pair<size_t, size_t>, int>>::iterator i = _intersections.begin(); i != _intersections.end(); ++i)
 	{
 		GlobeVector currentIntersection = (_parent->getIntersections()->find((*i).first)->second * (*i).second);
 		_polygonVertices.push_back(currentIntersection);
-		// Rotate all the intersections such that the center intersection would lie along the z axis - this makes it possible to just sort by longitude
-		//currentIntersection = currentIntersection.rotate((GlobeVector(0, 0, 1) * _centerCoordinates), -1 * _centerCoordinates.lat);
-		//sortIndex.push_back(std::make_pair(intersectionIndex, currentIntersection.lon));
-		//++intersectionIndex;
 	}
 	sortPolygonVertices();
-
-	// Sort by the longitudes of the rotated vectors
-	//std::sort(sortIndex.begin(), sortIndex.end(), [](std::pair<size_t, double> index1, std::pair<size_t, double> index2) {return index1.second < index2.second; });
-	//std::vector<GlobeVector> sortedIntersections;
-	//sortedIntersections.clear();
-	//for (std::vector<std::pair<size_t, double>>::iterator i = sortIndex.begin(); i != sortIndex.end(); ++i)
-	//{
-	//	GlobeVector currentIntersection = (_parent->getIntersections()->find(_intersections.at((*i).first).first)->second * _intersections.at((*i).first).second);
-	//	sortedIntersections.push_back(currentIntersection);
-	//}
 
 	// Check to see if we need to split this section - if not, just use the sorted intersections
 	if (_polygonVertices.size() == 3 && !(containsNorthPole || containsSouthPole))
@@ -335,13 +314,20 @@ void GlobeSection::splitIntoPolygons()
 	}
 
 	// Now that we have the sorted intersections, split the section by making triangles using the center coordinates and points along the perimeter of the section
-	for (std::vector<GlobeVector>::iterator i = _polygonVertices.begin(); i != _polygonVertices.end() - 1; ++i)
+	for (std::vector<GlobeVector>::iterator i = _polygonVertices.begin(); i != _polygonVertices.end(); ++i)
 	{
 
 		GlobeSection *newSection = new GlobeSection(_parent);
 		newSection->getPolygonVertices()->push_back(_centerCoordinates);
 		newSection->getPolygonVertices()->push_back((*i));
-		newSection->getPolygonVertices()->push_back(*(i + 1));
+		if (i != _polygonVertices.end() - 1)
+		{
+			newSection->getPolygonVertices()->push_back(*(i + 1));
+		}
+		else
+		{
+			newSection->getPolygonVertices()->push_back(_polygonVertices.at(0));
+		}
 
 		newSection->setHeightIndex(_heightIndex);
 		_parent->getNewSections()->push_back(*newSection);
@@ -355,6 +341,36 @@ void GlobeSection::sortPolygonVertices()
 	if (_centerCoordinates.x == 0 && _centerCoordinates.y == 0 && _centerCoordinates.z == 0) // default constructor for GlobeVector initializes to these
 		setCenterCoordinates();
 
+	// Determine if we have to 'unwrap' around the 0/360 longitude line, otherwise the sort behaves strangely there.
+	// Assume if we have longitudes between both 0-90 degrees and 270-360 degrees that it passes the 0 line
+	bool testLon1 = false, testLon2 = false;
+	for (std::vector<GlobeVector>::iterator i = _polygonVertices.begin(); i != _polygonVertices.end(); ++i)
+	{
+		if ((*i).lon < 90)
+		{
+			testLon1 = true;
+		}
+		else if ((*i).lon > 270)
+		{
+			testLon2 = true;
+		}
+
+		if (testLon1 && testLon2)
+			break;
+	}
+
+	// Accomplish the 'unwrap' by adding 360 to the points less than 90 degrees longitude
+	if (testLon1 && testLon2)
+	{
+		for (std::vector<GlobeVector>::iterator i = _polygonVertices.begin(); i != _polygonVertices.end(); ++i)
+		{
+			if ((*i).lon < 90)
+			{
+				(*i).lon += 360;
+			}
+		}
+	}
+
 	std::vector<std::pair<size_t, double>> sortIndex;
 	sortIndex.clear();
 	for (size_t i = 0; i < _polygonVertices.size(); ++i)
@@ -367,6 +383,11 @@ void GlobeSection::sortPolygonVertices()
 	sortedIntersections.clear();
 	for (std::vector<std::pair<size_t, double>>::iterator i = sortIndex.begin(); i != sortIndex.end(); ++i)
 	{
+		// Wrap the longitude around 360 degrees again here
+		if (_polygonVertices.at((*i).first).lon >= 360)
+		{
+			(_polygonVertices.at((*i).first)).lon -= 360;
+		}
 		sortedIntersections.push_back(_polygonVertices.at((*i).first));
 	}
 
