@@ -39,7 +39,7 @@ class GeoscapeGeneratorState : public State
 private:
 	Window *_window;
 	Text *_txtTitle, *_txtSeed, *_txtNumCircles, *_txtError;
-	TextButton *_btnOk, *_btnClear, *_btnCancel;
+	TextButton *_btnTextureAltitude, *_btnOk, *_btnClear, *_btnCancel;
 	TextEdit *_edtSeed, *_edtNumCircles;
 
 	size_t _rngSeed, _numCircles;
@@ -57,12 +57,16 @@ public:
 	void edtSeedChange(Action *action);
 	/// Handler for changing the number of circles using the text editor.
 	void edtNumCirclesChange(Action *action);
+	/// Handler for clicking the texture altitude button.
+	void btnTextureAltitudeClick(Action *action);
 	/// Handler for clicking the OK button.
 	void btnOkClick(Action *action);
 	/// Handler for clicking the Clear button.
 	void btnClearClick(Action *action);
 	/// Handler for clicking the Cancel button.
 	void btnCancelClick(Action *action);
+	/// Gets a pointer to the geoscape generator
+	GeoscapeGenerator *getGeoscapeGenerator();
 
 };
 

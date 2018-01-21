@@ -342,18 +342,20 @@ void GlobeSection::sortPolygonVertices()
 		setCenterCoordinates();
 
 	// Determine if we have to 'unwrap' around the 0/360 longitude line, otherwise the sort behaves strangely there.
-	// Assume if we have longitudes between both 0-90 degrees and 270-360 degrees that it passes the 0 line
+	// Consider globe in 4 quadrants separated by every 90 degrees longitude. We'll assume the polygon crosses the
+	// 0/360 line if there is at least one point in quadrants 1/2 and one in 3/4, plus all points lie in quadrants 1/4
+	// This will automatically exclude the polygons containing the polls (lon=360 for those)
 	bool testLon1 = false, testLon2 = false;
 	for (std::vector<GlobeVector>::iterator i = _polygonVertices.begin(); i != _polygonVertices.end(); ++i)
 	{
-		if ((*i).lon < 90)
-		{
+		if ((*i).dot(GlobeVector(-1, 0, 0)) > 0)
+			break;
+
+		if ((*i).dot(GlobeVector(0, 1, 0)) > 0)
 			testLon1 = true;
-		}
-		else if ((*i).lon > 270)
-		{
+
+		if ((*i).dot(GlobeVector(0, -1, 0)) > 0)
 			testLon2 = true;
-		}
 
 		if (testLon1 && testLon2)
 			break;

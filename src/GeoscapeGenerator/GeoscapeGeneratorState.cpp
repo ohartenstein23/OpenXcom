@@ -21,6 +21,7 @@
 #include <string>
 #include "GeoscapeGeneratorState.h"
 #include "GeoscapeGenerator.h"
+#include "TextureAltitudeOrderState.h"
 #include "../Interface/TextButton.h"
 #include "../Interface/Window.h"
 #include "../Interface/Text.h"
@@ -54,6 +55,8 @@ GeoscapeGeneratorState::GeoscapeGeneratorState()
 	_txtNumCircles = new Text(100, 10, 8, 52);
 	_edtNumCircles = new TextEdit(this, 22, 10, 18, 64);
 
+	_btnTextureAltitude = new TextButton(100, 16, 18, 76);
+
 	_txtError = new Text(140, 160, 170, 28);
 
 	_btnOk = new TextButton(100, 16, 8, 176);
@@ -73,6 +76,8 @@ GeoscapeGeneratorState::GeoscapeGeneratorState()
 	add(_txtNumCircles, "text", "newBattleMenu");
 	add(_edtNumCircles, "text", "newBattleMenu");
 
+	add(_btnTextureAltitude, "button2", "newBattleMenu");
+
 	add(_txtError, "text", "newBattleMenu");
 
 	add(_btnOk, "button2", "newBattleMenu");
@@ -90,12 +95,17 @@ GeoscapeGeneratorState::GeoscapeGeneratorState()
 
 	_txtSeed->setText(tr("STR_RNG_SEED"));
 	_edtSeed->onChange((ActionHandler)&GeoscapeGeneratorState::edtSeedChange);
+	_edtSeed->setConstraint(TEC_NUMERIC_POSITIVE);
 
 	_txtNumCircles->setText(tr("STR_NUMBER_OF_CIRCLES"));
 	_edtNumCircles->onChange((ActionHandler)&GeoscapeGeneratorState::edtNumCirclesChange);
+	_edtNumCircles->setConstraint(TEC_NUMERIC_POSITIVE);
 
 	_txtError->setWordWrap(true);
 	_txtError->setText(tr("STR_GEOSCAPE_GENERATOR_ERRORS"));
+
+	_btnTextureAltitude->setText(tr("STR_GLOBE_TEXTURE_LIST_BY_ALTITUDE"));
+	_btnTextureAltitude->onMouseClick((ActionHandler)&GeoscapeGeneratorState::btnTextureAltitudeClick);
 
 	_btnOk->setText(tr("STR_OK"));
 	_btnOk->onMouseClick((ActionHandler)&GeoscapeGeneratorState::btnOkClick);
@@ -236,6 +246,15 @@ void GeoscapeGeneratorState::edtNumCirclesChange(Action *action)
 }
 
 /**
+ * Brings up the menu for selecting the order in which textures get assigned to relative altitudes
+ * @param action Pointer to an action.
+ */
+void GeoscapeGeneratorState::btnTextureAltitudeClick(Action *)
+{
+	_game->pushState(new TextureAltitudeOrderState(this));
+}
+
+/**
  * Starts the geoscape generator.
  * @param action Pointer to an action.
  */
@@ -273,6 +292,14 @@ void GeoscapeGeneratorState::btnClearClick(Action *)
 void GeoscapeGeneratorState::btnCancelClick(Action *)
 {
 	_game->popState();
+}
+
+/**
+ * Gets a pointer to the geoscape generator
+ */
+GeoscapeGenerator *GeoscapeGeneratorState::getGeoscapeGenerator()
+{
+	return _geoscapeGenerator;
 }
 
 }
