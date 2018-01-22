@@ -58,7 +58,7 @@ MainMenuState::MainMenuState()
 	_btnLoad = new TextButton(92, 20, 64, 118);
 	_btnOptions = new TextButton(92, 20, 164, 118);
 	_btnQuit = new TextButton(192, 20, 64, 146);
-	_btnGeoGenerator = new TextButton(5, 5, 5, 5);
+	_btnGeoGenerator = new TextButton(92, 20, 189, 27);
 	_txtTitle = new Text(256, 30, 32, 45);
 
 	// Set palette
@@ -165,10 +165,6 @@ void MainMenuState::btnQuitClick(Action *)
 void MainMenuState::btnGeoGeneratorClick(Action *)
 {
 	_game->pushState(new GeoscapeGeneratorState);
-	//geoscapeGenerator->generate();
-	//geoscapeGenerator->save();
-
-	//delete geoscapeGenerator;
 }
 
 /**

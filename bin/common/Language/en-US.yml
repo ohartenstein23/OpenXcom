@@ -213,6 +213,17 @@ en-US:
   STR_TOGGLE_NIGHT_VISION: "Toggle Night Vision"
   STR_HOLD_NIGHT_VISION: "Short Night Vision"
   STR_SELECT_MUSIC_TRACK: "Select Music Track"
+#=================== Geoscape Generator ===================
+  STR_GEOSCAPE_GENERATOR: "Geoscape Generator"
+  STR_RNG_SEED: "RNG Seed:"
+  STR_NUMBER_OF_CIRCLES: "No. of Great Circles:"
+  STR_WATER_LEVEL_THRESHOLD: "Water Coverage:"
+  STR_GLOBE_TEXTURE_LIST_BY_ALTITUDE: "Textures by Altitude"
+  STR_POLES_LATITUDE_THRESHOLD: "Polar Region Size:"
+  STR_GLOBE_TEXTURE_LIST_FOR_POLES: "Textures for Poles"
+  STR_RESET_DATA: "Reset Data"
+  STR_GEOSCAPE_GENERATOR_ERRORS: "No errors in Geoscape Generator."
+  STR_GEOSCAPE_GENERATOR_RAN_SUCCESS: "Geoscape Generator ran without error!"
 #=================== Geoscape ===================
 #AllocateTrainingState.cpp
   STR_PHYSICAL_TRAINING: "Martial Training"

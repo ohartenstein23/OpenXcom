@@ -37,10 +37,12 @@ private:
 
 	uint64_t _rngSeed;
 	size_t _numberOfCircles;
+	int _waterThreshold, _polesThreshold;
 	std::vector<GlobeVector> _greatCircles;
 	std::map<std::pair<size_t, size_t>, GlobeVector> _intersections;
 	std::vector<GlobeSection> _globeSections;
 	std::vector<GlobeSection> _newSections;
+	std::vector<int> _texturesByAltitude, _texturesForPoles;
 public:
 	/// Constructor
 	GeoscapeGenerator(GeoscapeGeneratorState *parent);
@@ -48,7 +50,7 @@ public:
 	~GeoscapeGenerator();
 
 	/// Inputs the data for the GeoscapeGenerator
-	void init(size_t seed, size_t numCircles);
+	void init(size_t seed, size_t numCircles, int waterThreshold, int polesThreshold);
 
 	/// Runs the GeoscapeGenerator
 	void generate();
@@ -69,6 +71,10 @@ public:
 	std::vector<GlobeSection> *getGlobeSections();
 	/// Gets the list of globe sections added by the latest great circle intersections
 	std::vector<GlobeSection> *getNewSections();
+	/// Gets the ordered list of texture ids to paint on the globe by altitude
+	std::vector<int> *getTexturesByAltitude();
+	/// Gets the ordered list of texture ids to paint around the poles going outwards
+	std::vector<int> *getTexturesForPoles();
 	/// Saves the result of the geoscape generator
 	void save() const;
 	/// Saves information and throws an exception in case of an error.

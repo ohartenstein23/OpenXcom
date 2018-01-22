@@ -47,15 +47,20 @@ GeoscapeGenerator::~GeoscapeGenerator()
 	// delete variables to clean up here
 }
 
-void GeoscapeGenerator::init(size_t seed, size_t numCircles)
+void GeoscapeGenerator::init(size_t seed, size_t numCircles, int waterThreshold, int polesThreshold)
 {
 	_greatCircles.clear();
 	_intersections.clear();
 	_globeSections.clear();
 	_newSections.clear();
 
+	_texturesByAltitude.clear();
+	_texturesForPoles.clear();
+
 	RNG::setSeed(seed);
 	_numberOfCircles = numCircles;
+	_waterThreshold = waterThreshold;
+	_polesThreshold = polesThreshold;
 }
 
 // Runs the generation
@@ -112,14 +117,41 @@ void GeoscapeGenerator::generate()
 		}
 	}
 
+	// Get data for altitude distribution and prepare sections for assigning textures
+	int maxHeight = 0, minHeight = _numberOfCircles;
+	for (auto &i : _newSections)
+	{
+		i.setCenterCoordinates();
+		maxHeight = i.getHeightIndex() > maxHeight ? i.getHeightIndex() : maxHeight;
+		minHeight = i.getHeightIndex() < minHeight ? i.getHeightIndex() : minHeight;
+	}
+
 	// Fill up polygons with textures - first set of sections up to the chosen water percentage shouldn't change from -1
-	int waterPercentage = 40 * 10; // 40 percent, precise to 40.0
+	int heightAtSeaLevel = (maxHeight - minHeight) * _waterThreshold / 100;
+	double polePercentage = 1.0f - double(_polesThreshold) / 100.0f;
 	for (std::vector<GlobeSection>::iterator i = _newSections.begin(); i != _newSections.end(); ++i)
 	{
-		int percent = i->getHeightIndex() * 1000 / _numberOfCircles;
-		if (percent > waterPercentage)
+		int percent = (i->getHeightIndex() - minHeight - heightAtSeaLevel) * 100 / (maxHeight - minHeight - heightAtSeaLevel);
+		double northPoleDistance = i->getCenterCoordinates().dot(GlobeVector(0, 0, 1));
+		double southPoleDistance = i->getCenterCoordinates().dot(GlobeVector(0, 0, -1));
+		if (northPoleDistance > polePercentage)
 		{
-			i->setTextureId(i->getHeightIndex() * 11 / _numberOfCircles);
+			double poleDistance = (1.0f - northPoleDistance) / (1.0f - polePercentage); // 0 = at pole, 1 = at outer edge of pole region
+			size_t poleIndex = poleDistance * _texturesForPoles.size(); // not size - 1, otherwise we'd rarely see the outermost texture
+			poleIndex = std::min(poleIndex, _texturesForPoles.size() - 1); // make sure that rare case of == size() doesn't happen
+			i->setTextureId(_texturesForPoles.at(poleIndex));
+		}
+		else if (southPoleDistance > polePercentage)
+		{
+			double poleDistance = (1.0f - southPoleDistance) / (1.0f - polePercentage); // 0 = at pole, 1 = at outer edge of pole region
+			size_t poleIndex = poleDistance * _texturesForPoles.size(); // not size - 1, otherwise we'd rarely see the outermost texture
+			poleIndex = std::min(poleIndex, _texturesForPoles.size() - 1); // make sure that rare case of == size() doesn't happen
+			i->setTextureId(_texturesForPoles.at(poleIndex));
+		}
+		else if (percent > 0)
+		{
+			size_t textureIndex = std::min(size_t(percent * _texturesByAltitude.size() / 100), _texturesByAltitude.size() - 1);
+			i->setTextureId(_texturesByAltitude.at(textureIndex));
 		}
 		else
 		{
@@ -221,6 +253,18 @@ std::vector<GlobeSection> *GeoscapeGenerator::getGlobeSections()
 std::vector<GlobeSection> *GeoscapeGenerator::getNewSections()
 {
 	return &_newSections;
+}
+
+// Gets the ordered list of texture ids to paint on the globe by altitude
+std::vector<int> *GeoscapeGenerator::getTexturesByAltitude()
+{
+	return &_texturesByAltitude;
+}
+
+// Gets the ordered list of texture ids to paint on the poles outward
+std::vector<int> *GeoscapeGenerator::getTexturesForPoles()
+{
+	return &_texturesForPoles;
 }
 
 // Saves the result of the geoscape generator

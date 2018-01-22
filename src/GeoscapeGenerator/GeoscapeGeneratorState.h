@@ -38,11 +38,14 @@ class GeoscapeGeneratorState : public State
 {
 private:
 	Window *_window;
-	Text *_txtTitle, *_txtSeed, *_txtNumCircles, *_txtError;
-	TextButton *_btnTextureAltitude, *_btnOk, *_btnClear, *_btnCancel;
-	TextEdit *_edtSeed, *_edtNumCircles;
+	Frame *_frameSeed, *_frameNumCircles, *_frameWaterThreshold, *_framePolesThreshold, *_frameErrorMessages;
+	Text *_txtTitle, *_txtSeed, *_txtNumCircles, *_txtWaterThreshold, *_txtPolesThreshold, *_txtError;
+	TextButton *_btnTextureAltitude, *_btnTexturePoles, *_btnOk, *_btnClear, *_btnCancel;
+	TextEdit *_edtSeed, *_edtNumCircles, *_edtWaterThreshold, *_edtPolesThreshold;
 
 	size_t _rngSeed, _numCircles;
+	int _waterThreshold, _polesThreshold;
+	std::vector<std::pair<int, bool > > _texturesByAltitude, _texturesForPoles;
 
 	GeoscapeGenerator *_geoscapeGenerator;
 
@@ -53,12 +56,20 @@ public:
 	~GeoscapeGeneratorState();
 	/// Initializes the data for the geoscape generator.
 	void init();
+	/// Resets the data for this menu to defaults
+	void resetData();
 	/// Handler for changing the RNG seed using the text editor.
 	void edtSeedChange(Action *action);
 	/// Handler for changing the number of circles using the text editor.
 	void edtNumCirclesChange(Action *action);
+	/// Handler for changing the altitude threshold for water using the text editor.
+	void edtWaterThresholdChange(Action *action);
 	/// Handler for clicking the texture altitude button.
 	void btnTextureAltitudeClick(Action *action);
+	/// Handler for changing the latitude threshold for poles using the text editor.
+	void edtPolesThresholdChange(Action *action);
+	/// Handler for clicking the texture poles button.
+	void btnTexturePolesClick(Action *action);
 	/// Handler for clicking the OK button.
 	void btnOkClick(Action *action);
 	/// Handler for clicking the Clear button.

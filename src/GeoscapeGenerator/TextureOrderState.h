@@ -34,20 +34,33 @@ class Slider;
 class Frame;
 class Action;
 
-class TextureAltitudeOrderState: public State
+class TextureOrderState: public State
 {
 private:
 	GeoscapeGeneratorState *_parent;
 	Window *_window;
 	TextList *_lstTextures;
 	TextButton *_btnOk;
+	std::vector<std::pair<int, bool> > *_textures;
 
 public:
 	// Constructor
-	TextureAltitudeOrderState(GeoscapeGeneratorState *parent);
+	TextureOrderState(GeoscapeGeneratorState *parent, std::vector<std::pair<int, bool> > *textures);
 	// Destructor
-	~TextureAltitudeOrderState();
+	~TextureOrderState();
 
+	// Draws the list of textures
+	void drawTextureList();
+	// Handles clicking on a texture in the list
+	void lstTexturesClick(Action *action);
+	// Handles clicking the up arrow on the list
+	void lstTexturesLeftArrowClick(Action *action);
+	// Moves a texture up on the list
+	void moveTextureUp(Action *action, unsigned int row, bool max = false);
+	// Handles clicking the down arrow on the list
+	void lstTexturesRightArrowClick(Action *action);
+	// Moves a texture down on the list
+	void moveTextureDown(Action *action, unsigned int row, bool max = false);
 	// Handler for pressing the OK button
 	void btnOkClick(Action *action);
 };
