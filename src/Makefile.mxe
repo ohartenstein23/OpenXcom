@@ -90,6 +90,9 @@ $(OBJDIR)%.o:: Engine/Adlib/%.cpp
 $(OBJDIR)%.o:: Geoscape/%.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
+$(OBJDIR)%.o:: GeoscapeGenerator/%.cpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
 $(OBJDIR)%.o:: Interface/%.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
