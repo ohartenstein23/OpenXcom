@@ -93,6 +93,8 @@ private:
 	void drawRoutine20();
 	/// Drawing routine for xarquids.
 	void drawRoutine21();
+	/// Drawing routine for small helicopters
+	void drawRoutine23();
 	/// Sort two handed sprites out.
 	void sortRifles();
 	/// Get graphic for unit part.

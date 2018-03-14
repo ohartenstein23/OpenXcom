@@ -261,6 +261,7 @@ void UnitSprite::draw(BattleUnit* unit, int part, int x, int y, int shade, bool 
 		&UnitSprite::drawRoutine20,
 		&UnitSprite::drawRoutine21,
 		&UnitSprite::drawRoutine3,
+		&UnitSprite::drawRoutine23
 	};
 	// Call the matching routine
 	(this->*(routines[_drawingRoutine]))();
@@ -1452,6 +1453,120 @@ void UnitSprite::drawRoutine21()
 	selectUnit(s, (_part * 4), (_unit->getDirection() * 16) + (_animationFrame % 4));
 
 	blitBody(s);
+}
+
+/**
+ * Drawing routine for 1x1 helicopters
+ * Very easy: first 8 is standing positions, 8 animation frames drawn above the body, 
+ * then 8 animation frames drawn below the body, finally death sequence of 3
+ */
+void UnitSprite::drawRoutine23()
+{
+	Part s{ BODYPART_TORSO }, itemR{ BODYPART_ITEM_RIGHTHAND }, itemL{ BODYPART_ITEM_LEFTHAND }, anim1 { BODYPART_HEAD }, anim2 { BODYPART_LEGS };
+	int stand = 0, animUpper = 8, animLower = 16, die = 24;
+	const int offX[8] = { 8, 10, 7, 4, -9, -11, -7, -3 }; // for the weapons
+	const int offY[8] = { -6, -3, 0, 2, 0, -4, -7, -9 }; // for the weapons
+	const int offX2[8] = { -8, 3, 5, 12, 6, -1, -5, -13 }; // for the weapons
+	const int offY2[8] = { 1, -4, -2, 0, 3, 3, 5, 0 }; // for the weapons
+	const int offX3[8] = { 0, 6, 6, 12, -4, -5, -5, -13 }; // for the left handed rifles
+	const int offY3[8] = { -4, -4, -1, 0, 5, 0, 1, 0 }; // for the left handed rifles
+	const int offXAiming = 16;
+
+	const int unitDir = _unit->getDirection();
+
+	if (_unit->getStatus() == STATUS_COLLAPSING)
+	{
+		Part coll{ BODYPART_COLLAPSING };
+		selectUnit(coll, die, _unit->getFallingPhase());
+		blitBody(coll);
+		return;
+	}
+	else
+	{
+		selectUnit(s, stand, unitDir);
+	}
+
+	sortRifles();
+
+	if (_itemR && !_itemR->getRules()->isFixed())
+	{
+		// draw handob item
+		if (_unit->getStatus() == STATUS_AIMING && _itemR->getRules()->isTwoHanded())
+		{
+			int dir = (unitDir + 2)%8;
+			selectItem(itemR, _itemR, dir);
+			itemR.offX = (offX[unitDir]);
+			itemR.offY = (offY[unitDir]);
+		}
+		else
+		{
+			if (_itemR->getSlot()->getId() == "STR_RIGHT_HAND")
+			{
+				selectItem(itemR, _itemR, unitDir);
+				itemR.offX = (0);
+				itemR.offY = (0);
+			}
+			else
+			{
+				selectItem(itemR, _itemR, unitDir);
+				itemR.offX = (offX2[unitDir]);
+				itemR.offY = (offY2[unitDir]);
+			}
+		}
+	}
+
+	//if we are dual wielding...
+	if (_itemL && !_itemL->getRules()->isFixed())
+	{
+		selectItem(itemL, _itemL, unitDir);
+		if (!_itemL->getRules()->isTwoHanded())
+		{
+			itemL.offX = (offX2[unitDir]);
+			itemL.offY = (offY2[unitDir]);
+		}
+		else
+		{
+			itemL.offX = (0);
+			itemL.offY = (0);
+		}
+
+		if (_unit->getStatus() == STATUS_AIMING && _itemL->getRules()->isTwoHanded())
+		{
+			int dir = (unitDir + 2)%8;
+			selectItem(itemL, _itemL, dir);
+			itemL.offX = (offX3[unitDir]);
+			itemL.offY = (offY3[unitDir]);
+		}
+	}
+
+	if (_unit->getStatus() == STATUS_AIMING)
+	{
+		s.offX = (offXAiming);
+		if (itemR)
+			itemR.offX = (itemR.offX + offXAiming);
+		if (itemL)
+			itemL.offX = (itemL.offX + offXAiming);
+	}
+
+	// draw the animated propulsion below the unit
+	selectUnit(anim2, animLower, _animationFrame % 8);
+	blitBody(anim2);
+
+	switch (unitDir)
+	{
+	case 0: blitItem(itemL); blitItem(itemR); blitBody(s); break;
+	case 1: blitItem(itemL); blitBody(s); blitItem(itemR); break;
+	case 2: blitBody(s); blitItem(itemL); blitItem(itemR); break;
+	case 3: blitBody(s); blitItem(itemR); blitItem(itemL); break;
+	case 4: blitBody(s); blitItem(itemR); blitItem(itemL); break;
+	case 5: blitItem(itemR); blitBody(s); blitItem(itemL); break;
+	case 6: blitItem(itemR); blitBody(s); blitItem(itemL); break;
+	case 7: blitItem(itemR); blitItem(itemL); blitBody(s); break;
+	}
+
+	// draw the animated propulsion above the unit
+	selectUnit(anim1, animUpper, _animationFrame % 8);
+	blitBody(anim1);
 }
 
 /**

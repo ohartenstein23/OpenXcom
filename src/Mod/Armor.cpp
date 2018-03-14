@@ -135,7 +135,8 @@ void Armor::load(const YAML::Node &node, const ModScript &parsers, Mod *mod)
 		_drawingRoutine == 14 ||
 		_drawingRoutine == 15 ||
 		_drawingRoutine == 17 ||
-		_drawingRoutine == 18)
+		_drawingRoutine == 18 ||
+		_drawingRoutine == 23)
 	{
 		_canHoldWeapon = true;
 	}
