@@ -1,6 +1,6 @@
 #pragma once
 /*
- * Copyright 2010-2016 OpenXcom Developers.
+ * Copyright 2010-2018 OpenXcom Developers.
  *
  * This file is part of OpenXcom.
  *
@@ -17,26 +17,34 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "ArticleState.h"
+#include "../Engine/State.h"
 
 namespace OpenXcom
 {
-	class Text;
-	class ArticleDefinitionTFTD;
 
-	/**
-	 * Every TFTD article has a title, text block and a background image, with little to no variation.
-	 */
+class Surface;
+class Text;
+class TextButton;
 
-	class ArticleStateTFTD : public ArticleState
-	{
-	public:
-		ArticleStateTFTD(ArticleDefinitionTFTD *defs);
-		virtual ~ArticleStateTFTD();
+/**
+ * Easter Egg.
+ */
+class HelloCommanderState : public State
+{
+private:
+	Surface *_bg;
+	Text *_txtMessage;
+	TextButton *_btnOk;
+	bool _exit;
+public:
+	/// Creates the HelloCommander state.
+	HelloCommanderState();
+	/// Cleans up the HelloCommander state.
+	~HelloCommanderState();
+	/// Initializes the state.
+	void init();
+	/// Handler for clicking the OK button.
+	void btnOkClick(Action *action);
+};
 
-	protected:
-		Text *_txtTitle;
-		Text *_txtInfo;
-		Uint8 _buttonColor, _textColor, _textColor2, _listColor1, _listColor2, _ammoColor;
-	};
 }
