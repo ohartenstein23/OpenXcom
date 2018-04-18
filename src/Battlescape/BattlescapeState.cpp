@@ -1299,6 +1299,10 @@ void BattlescapeState::btnLeftHandItemClick(Action *action)
 		_save->getSelectedUnit()->setActiveHand("STR_LEFT_HAND");
 		_map->draw();
 		BattleItem *leftHandItem = _save->getSelectedUnit()->getLeftHandWeapon();
+		if (!leftHandItem && _save->getSelectedUnit()->getSpecialWeapon(BT_MELEE))
+		{
+			leftHandItem = _save->getSelectedUnit()->getSpecialWeapon(BT_MELEE);
+		}
 		bool middleClick = action->getDetails()->button.button == SDL_BUTTON_MIDDLE;
 		handleItemClick(leftHandItem, middleClick);
 	}
@@ -1326,6 +1330,10 @@ void BattlescapeState::btnRightHandItemClick(Action *action)
 		_save->getSelectedUnit()->setActiveHand("STR_RIGHT_HAND");
 		_map->draw();
 		BattleItem *rightHandItem = _save->getSelectedUnit()->getRightHandWeapon();
+		if (!rightHandItem && _save->getSelectedUnit()->getSpecialWeapon(BT_MELEE))
+		{
+			rightHandItem = _save->getSelectedUnit()->getSpecialWeapon(BT_MELEE);
+		}
 		bool middleClick = action->getDetails()->button.button == SDL_BUTTON_MIDDLE;
 		handleItemClick(rightHandItem, middleClick);
 	}
