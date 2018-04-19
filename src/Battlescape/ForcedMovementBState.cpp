@@ -200,6 +200,7 @@ bool ForcedMovementBState::validateTarget()
 				tileToCheck->getTUCost(O_OBJECT, _unit->getMovementType()) == 255 ||
 				(tileToCheck->getMapData(O_OBJECT) && tileToCheck->getMapData(O_OBJECT)->getBigWall() && tileToCheck->getMapData(O_OBJECT)->getBigWall() <= 3))
 			{
+				_action.result = "STR_UNABLE_TO_MOVE_HERE";
 				return false;
 			}
 
@@ -222,6 +223,7 @@ bool ForcedMovementBState::validateTarget()
 		for (int dir = 2; dir <= 4; ++dir)
 		{
 			if (_parent->getSave()->getPathfinding()->isBlocked(_parent->getSave()->getTile(_targetPosition), 0, dir, 0))
+				action.result = "STR_UNABLE_TO_MOVE_HERE";
 				return false;
 		}
 	}
