@@ -171,6 +171,21 @@ void ForcedMovementBState::cancel()
  */
 bool ForcedMovementBState::validateTarget()
 {
+	// Check if this action is range-limited
+	int distance = _parent->getTileEngine()->distance(_action.actor->getPosition(), _action.target);
+	if (_action.actor == _unit && _action.weapon->getRules()->getMaxRange() < distance)
+	{
+		_action.result = "STR_OUT_OF_RANGE";
+		return false;
+	}
+
+	// Check if we need LOS to the target position
+	if (_action.weapon->getRules()->isLOSRequired() && !_parent->getTileEngine()->isTileInLOS(&_action, _parent->getSave()->getTile(_targetPosition)))
+	{
+		_action.result = "STR_LINE_OF_SIGHT_REQUIRED";
+		return false;
+	}
+
 	// Do we need to check for falling from the target location?
 	_fallAtEnd = ((_targetPosition.z != 0) && (_unit->getMovementType() != MT_FLY));
 

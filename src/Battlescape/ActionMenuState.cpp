@@ -220,6 +220,10 @@ ActionMenuState::ActionMenuState(BattleAction *action, int x, int y) : _action(a
 	{
 		addItem(BA_USE, "STR_USE_MIND_PROBE", &id, Options::keyBattleActionItem1);
 	}
+	else if (weapon->getBattleType() == BT_MELEE && weapon->getForcedMovementIsWarp() && weapon->getCostUse().Time > 0)
+	{
+		addItem(BA_USE, weapon->getPsiAttackName(), &id, Options::keyBattleActionItem1);
+	}
 
 }
 

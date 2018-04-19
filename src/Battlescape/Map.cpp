@@ -1829,10 +1829,7 @@ void Map::setCursorType(CursorType type, int size)
 	_cacheHasLOS = -1;
 
 	_cursorType = type;
-	if (_cursorType == CT_NORMAL)
-		_cursorSize = size;
-	else
-		_cursorSize = 1;
+	_cursorSize = size;
 }
 
 /**

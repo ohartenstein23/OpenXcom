@@ -1010,6 +1010,11 @@ void BattlescapeGame::setupCursor()
 		else if (_currentAction.type == BA_MINDCONTROL || _currentAction.type == BA_PANIC || _currentAction.type == BA_USE)
 		{
 			getMap()->setCursorType(CT_PSI);
+
+			if (_currentAction.type == BA_USE && _currentAction.weapon->getRules()->getForcedMovementIsWarp())
+			{
+				getMap()->setCursorType(CT_THROW, _currentAction.actor->getArmor()->getSize());
+			}
 		}
 		else if (_currentAction.type == BA_LAUNCH)
 		{
@@ -1556,7 +1561,7 @@ void BattlescapeGame::primaryAction(Position pos)
 				getMap()->getWaypoints()->push_back(pos);
 			}
 		}
-		else if (_currentAction.weapon->getRules()->getForcedMovementIsWarp())
+		else if (_currentAction.type == BA_USE && _currentAction.weapon->getRules()->getForcedMovementIsWarp())
 		{
 			_currentAction.target = pos;
 			if (!_save->selectUnit(pos))
