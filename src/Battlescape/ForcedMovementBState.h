@@ -38,7 +38,7 @@ private:
 	bool _isTargeted, _isWarp;
 	int _unitSize;
 	Position _targetPosition;
-	bool _fallAtEnd;
+	bool _fallAtEnd, _movementFinished;
 public:
 	/// Creates a new ForcedMovementBState class.
 	ForcedMovementBState(BattlescapeGame *parent, BattleAction action, BattleUnit *unit);

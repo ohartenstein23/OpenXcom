@@ -156,7 +156,8 @@ private:
 	int _accuracyUse, _accuracyMind, _accuracyPanic, _accuracyThrow, _accuracyCloseQuarters;
 	int _noLOSAccuracyPenalty;
 	int _forcedMovementKnockback, _forcedMovementRecoil;
-	bool _forcedMovementIsTargeted, _forcedMovementIsWarp;
+	bool _forcedMovementIsTargeted, _forcedMovementIsWarp, _forcedMovementRequiresPath;
+	int _forcedMovementPathingType, _forcedMovementRangeType;
 	RuleItemUseCost _costUse, _costMind, _costPanic, _costThrow, _costPrime, _costUnprime;
 	int _clipSize, _specialChance, _tuLoad[AmmoSlotMax], _tuUnload[AmmoSlotMax];
 	BattleType _battleType;
@@ -386,6 +387,12 @@ public:
 	bool getForcedMovementIsTargeted() const;
 	/// Get whether the forced movement is a teleport/warp.
 	bool getForcedMovementIsWarp() const;
+	/// Get whether the forced movement requires a valid path.
+	bool getForcedMovementRequiresPath() const;
+	/// Get the forced movement pathing type.
+	int getForcedMovementPathingType() const;
+	/// Get the forced movement range type.
+	int getForcedMovementRangeType() const;
 
 	/// Gets the item's aimed shot cost.
 	RuleItemUseCost getCostAimed() const;

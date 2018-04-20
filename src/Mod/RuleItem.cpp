@@ -50,7 +50,8 @@ RuleItem::RuleItem(const std::string &type) :
 	_accuracyUse(0), _accuracyMind(0), _accuracyPanic(20), _accuracyThrow(100), _accuracyCloseQuarters(-1),
 	_noLOSAccuracyPenalty(-1),
 	_forcedMovementKnockback(0), _forcedMovementRecoil(0),
-	_forcedMovementIsTargeted(false), _forcedMovementIsWarp(false),
+	_forcedMovementIsTargeted(false), _forcedMovementIsWarp(false), _forcedMovementRequiresPath(false),
+	_forcedMovementPathingType(-1), _forcedMovementRangeType(-1),
 	_costUse(25), _costMind(-1, -1), _costPanic(-1, -1), _costThrow(25), _costPrime(50), _costUnprime(25),
 	_clipSize(0), _specialChance(100), _tuLoad{ }, _tuUnload{ },
 	_battleType(BT_NONE), _fuseType(BFT_NONE), _fuseTriggerEvents{ }, _hiddenOnMinimap(false), _psiAttackName(), _primeActionName("STR_PRIME_GRENADE"), _unprimeActionName(), _primeActionMessage("STR_GRENADE_IS_ACTIVATED"), _unprimeActionMessage("STR_GRENADE_IS_DEACTIVATED"),
@@ -491,6 +492,9 @@ void RuleItem::load(const YAML::Node &node, Mod *mod, int listOrder, const ModSc
 			_forcedMovementRecoil = nodeForcedMovement["recoil"].as<int>(_forcedMovementRecoil);
 			_forcedMovementIsTargeted = nodeForcedMovement["targeted"].as<bool>(_forcedMovementIsTargeted);
 			_forcedMovementIsWarp = nodeForcedMovement["warp"].as<bool>(_forcedMovementIsWarp);
+			_forcedMovementRequiresPath = nodeForcedMovement["requiresPath"].as<bool>(_forcedMovementRequiresPath);
+			_forcedMovementPathingType = nodeForcedMovement["pathingType"].as<int>(_forcedMovementPathingType);
+			_forcedMovementRangeType = nodeForcedMovement["rangeType"].as<int>(_forcedMovementRangeType);
 		}
                 if (nodeForcedMovement.IsScalar()) // If just a number, assume it's impact knockback
 		{
@@ -1220,6 +1224,35 @@ bool RuleItem::getForcedMovementIsTargeted() const
 bool RuleItem::getForcedMovementIsWarp() const
 {
 	return _forcedMovementIsWarp;
+}
+
+/**
+ * Gets whether the forced movement of this item requires pathfinding validation
+ * @return True if needs valid path.
+ */
+bool RuleItem::getForcedMovementRequiresPath() const
+{
+	return _forcedMovementRequiresPath;
+}
+
+/**
+ * Gets the pathfinding validation type of this item's forced movement
+ * -1 (default) : use the unit's movement type, 0 : walking, 1 : flying, 2 : sliding
+ * @return The pathfiding movement type.
+ */
+int RuleItem::getForcedMovementPathingType() const
+{
+	return _forcedMovementPathingType;
+}
+
+/**
+ * Gets the max range validation type of this items's forced movement
+ * -1 (default) : only maxRange, 0 : direct distance, 1 : pathing TU cost
+ * @return The pathfiding range type.
+ */
+int RuleItem::getForcedMovementRangeType() const
+{
+	return _forcedMovementRangeType;
 }
 
 /**

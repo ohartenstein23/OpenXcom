@@ -3838,6 +3838,16 @@ MovementType BattleUnit::getMovementType() const
 }
 
 /**
+ * Sets the movement type of this unit.
+ * This is a minor hack, do not use unless you plan on setting it back to what it should be immediately afterwards!
+ * @param movementType
+ */
+void BattleUnit::setMovementType(MovementType movementType)
+{
+	_movementType = movementType;
+}
+
+/**
  * Elevates the unit to grand galactic inquisitor status,
  * meaning they will NOT take part in the current battle.
  */

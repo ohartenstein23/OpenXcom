@@ -18,6 +18,9 @@
  */
 #include "ForcedMovementBState.h"
 #include "BattlescapeState.h"
+#include "Camera.h"
+#include "Explosion.h"
+#include "Map.h"
 #include "Pathfinding.h"
 #include "TileEngine.h"
 #include "UnitFallBState.h"
@@ -36,7 +39,7 @@ namespace OpenXcom
  * @param action Pointer to the action that caused this state.
  * @param unit Pointer to the unit being moved.
  */
-ForcedMovementBState::ForcedMovementBState(BattlescapeGame *parent, BattleAction action, BattleUnit *unit) : BattleState(parent, action), _unit(unit), _isTargeted(false), _isWarp(false), _unitSize(0), _targetPosition(-1, -1, -1)
+ForcedMovementBState::ForcedMovementBState(BattlescapeGame *parent, BattleAction action, BattleUnit *unit) : BattleState(parent, action), _unit(unit), _isTargeted(false), _isWarp(false), _unitSize(0), _targetPosition(-1, -1, -1), _movementFinished(false)
 {
 	// TODO initialization commands here
 }
@@ -106,6 +109,31 @@ void ForcedMovementBState::init()
 		_action.spendTU();
 	}
 
+	if (_isWarp)
+	{
+		int frame = Mod::EXPLOSION_OFFSET;
+		int sound = Mod::SMALL_EXPLOSION;
+
+		frame = _action.weapon->getRules()->getHitAnimation();
+		if (_action.weapon->getRules()->getExplosionHitSound());
+		{
+			sound = _action.weapon->getRules()->getExplosionHitSound();
+		}
+
+		if (_parent->getDepth() > 0)
+		{
+			frame -= Explosion::EXPLODE_FRAMES;
+		}
+
+		Explosion *explosion = new Explosion(_unit->getPosition().toVexel(), frame, false, true);
+		// add the explosion on the map
+		_parent->getMap()->getExplosions()->push_back(explosion);
+		_parent->setStateInterval(BattlescapeState::DEFAULT_ANIM_SPEED/2);
+		// explosion sound
+		_parent->playSound(sound);
+		//_parent->getMap()->getCamera()->centerOnPosition(_center.toTile(), false);
+	}
+
 	return;
 }
 
@@ -114,45 +142,95 @@ void ForcedMovementBState::init()
  */
 void ForcedMovementBState::think()
 {
-	// Handle teleports
-	if (_isWarp && _action.actor == _unit)
+	// Start by animating any start explosion
+	if (!_parent->getMap()->getExplosions()->empty()) //!_parent->getMap()->getBlastFlash() && 
 	{
-		// Move the unit
-		for (int x = _unitSize; x >= 0; x--)
+		for(std::list<Explosion*>::iterator explosion = _parent->getMap()->getExplosions()->begin(); explosion != _parent->getMap()->getExplosions()->end();)
 		{
-			for (int y = _unitSize; y >= 0; y--)
+
+			if (!(*explosion)->animate())
 			{
-				_parent->getSave()->getTile(_unit->getPosition() + Position(x, y, 0))->setUnit(0);
+				delete (*explosion);
+				explosion = _parent->getMap()->getExplosions()->erase(explosion);
+				if (_parent->getMap()->getExplosions()->empty())
+				{
+					break;
+				}
+			}
+			else
+			{
+				++explosion;
 			}
 		}
+	}
+	else if (!_movementFinished) // If the start explosion is done, we can move the unit
+	{
+		_movementFinished = true;
 
-		_unit->setPosition(_targetPosition);
-
-		for (int x = _unitSize; x >= 0; x--)
+		// Handle teleports
+		if (_isWarp && _action.actor == _unit)
 		{
-			for (int y = _unitSize; y >= 0; y--)
+			// Move the unit
+			for (int x = _unitSize; x >= 0; x--)
 			{
-				_parent->getSave()->getTile(_unit->getPosition() + Position(x,y,0))->setUnit(_unit, _parent->getSave()->getTile(_unit->getPosition() + Position(x,y,-1)));
+				for (int y = _unitSize; y >= 0; y--)
+				{
+					_parent->getSave()->getTile(_unit->getPosition() + Position(x, y, 0))->setUnit(0);
+				}
 			}
+
+			_unit->setPosition(_targetPosition);
+
+			for (int x = _unitSize; x >= 0; x--)
+			{
+				for (int y = _unitSize; y >= 0; y--)
+				{
+					_parent->getSave()->getTile(_unit->getPosition() + Position(x,y,0))->setUnit(_unit, _parent->getSave()->getTile(_unit->getPosition() + Position(x,y,-1)));
+				}
+			}
+
+			_parent->getSave()->getTile(_targetPosition)->setUnit(_unit);
+			_parent->getSave()->getTileEngine()->calculateLighting(LL_UNITS);
+			_parent->getSave()->getTileEngine()->calculateFOV(_unit, 2, false);
+
+			int frame = Mod::EXPLOSION_OFFSET;
+			int sound = Mod::SMALL_EXPLOSION;
+
+			frame = _action.weapon->getRules()->getHitAnimation();
+			if (_action.weapon->getRules()->getExplosionHitSound());
+			{
+				sound = _action.weapon->getRules()->getExplosionHitSound();
+			}
+
+			if (_parent->getDepth() > 0)
+			{
+				frame -= Explosion::EXPLODE_FRAMES;
+			}
+
+			Explosion *explosion = new Explosion(_unit->getPosition().toVexel(), frame, false, true);
+			// add the explosion on the map
+			_parent->getMap()->getExplosions()->push_back(explosion);
+			_parent->setStateInterval(BattlescapeState::DEFAULT_ANIM_SPEED/2);
+			// explosion sound
+			_parent->playSound(sound);
+			_parent->getMap()->getCamera()->centerOnPosition(_unit->getPosition(), false);
 		}
-
-		_parent->getSave()->getTile(_targetPosition)->setUnit(_unit);
-		_parent->getSave()->getTileEngine()->calculateLighting(LL_UNITS);
-		_parent->getSave()->getTileEngine()->calculateFOV(_unit, 2, false);
-		_parent->playSound(_action.weapon->getRules()->getHitSound(), _targetPosition);
 	}
-
-	_parent->popState();
-	if (_fallAtEnd)
+	else // Both movement and all animations are done, pop the state
 	{
-		_parent->getSave()->addFallingUnit(_unit);
-		_parent->statePushFront(new UnitFallBState(_parent));
+		_parent->popState();
+		if (_fallAtEnd)
+		{
+			_parent->getSave()->addFallingUnit(_unit);
+			_parent->statePushFront(new UnitFallBState(_parent));
+		}
+		else if (_isWarp && _action.actor == _unit)
+		{
+			// Let reaction fire happen at the end of warps
+			_parent->getSave()->getTileEngine()->checkReactionFire(_unit, _action);
+		}
 	}
-	else if (_isWarp && _action.actor == _unit)
-	{
-		// Let reaction fire happen at the end of warps
-		_parent->getSave()->getTileEngine()->checkReactionFire(_unit, _action);
-	}
+
 	return;
 }
 
@@ -171,12 +249,70 @@ void ForcedMovementBState::cancel()
  */
 bool ForcedMovementBState::validateTarget()
 {
-	// Check if this action is range-limited
-	int distance = _parent->getTileEngine()->distance(_action.actor->getPosition(), _action.target);
-	if (_action.actor == _unit && _action.weapon->getRules()->getMaxRange() < distance)
+	// Check if this action is range- and path-limited
+	int distance = sqrt(_parent->getTileEngine()->distanceSq(_action.actor->getPosition(), _action.target, true));
+	bool validPath = true;
+
+	if (_action.weapon->getRules()->getMaxRange() < distance)
 	{
 		_action.result = "STR_OUT_OF_RANGE";
 		return false;
+	}
+
+	if (_action.actor == _unit && _action.weapon->getRules()->getForcedMovementRequiresPath())
+	{
+		int pathingType = _action.weapon->getRules()->getForcedMovementPathingType();
+		MovementType movementType = _action.actor->getMovementType();
+
+		if (pathingType != -1)
+		{
+			switch (pathingType)
+			{
+				case 0:
+					_action.actor->setMovementType(MT_WALK);
+					break;
+				case 1:
+					_action.actor->setMovementType(MT_FLY);
+					break;
+				case 2:
+					_action.actor->setMovementType(MT_SLIDE);
+					break;
+				default:
+					break;
+			}
+		}
+
+		_parent->getSave()->getPathfinding()->calculate(_action.actor, _action.target);
+		
+		if (_parent->getSave()->getPathfinding()->getStartDirection() == -1)
+		{
+			_action.result = "STR_UNABLE_TO_MOVE_HERE";
+			validPath = false;
+		}
+
+		if (_action.weapon->getRules()->getForcedMovementRangeType() == 1)
+		{
+			distance = _parent->getSave()->getPathfinding()->getTotalTUCost();
+		}
+
+		_parent->getSave()->getPathfinding()->abortPath();
+		_action.actor->setMovementType(movementType);
+
+		if (!validPath)
+		{
+			return false;
+		}
+	}
+
+	if (_action.actor == _unit && _action.weapon->getRules()->getForcedMovementRangeType() != -1)
+	{
+		int range = _action.weapon->getRules()->getPowerBonus(_action.actor);
+
+		if (range < distance)
+		{
+			_action.result = "STR_OUT_OF_RANGE";
+			return false;
+		}
 	}
 
 	// Check if we need LOS to the target position
@@ -223,8 +359,10 @@ bool ForcedMovementBState::validateTarget()
 		for (int dir = 2; dir <= 4; ++dir)
 		{
 			if (_parent->getSave()->getPathfinding()->isBlocked(_parent->getSave()->getTile(_targetPosition), 0, dir, 0))
-				action.result = "STR_UNABLE_TO_MOVE_HERE";
+			{
+				_action.result = "STR_UNABLE_TO_MOVE_HERE";
 				return false;
+			}
 		}
 	}
 

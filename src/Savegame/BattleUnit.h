@@ -554,6 +554,8 @@ public:
 	void calculateEnviDamage(Mod *mod, SavedBattleGame *save);
 	/// Use this function to check the unit's movement type.
 	MovementType getMovementType() const;
+	/// Set the unit's movement type. ***Use only for temporary things!***
+	void setMovementType(MovementType movementType);
 	/// Create special weapon for unit.
 	void setSpecialWeapon(SavedBattleGame *save);
 	/// Get special weapon.
