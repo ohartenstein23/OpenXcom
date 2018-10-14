@@ -98,6 +98,7 @@ en-GB:
   isFireExtinguisher: "Fire exinguisher?"
   waypoints: "Max waypoints"
   sprayWaypoints: "Spray shot waypoints"
+  artillerySpread: "Artillery accuracy"
 #
   shotgunPellets: "Number of pellets"
   shotgunBehavior: "Shotgun behavior"

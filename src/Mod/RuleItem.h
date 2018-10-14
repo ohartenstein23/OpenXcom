@@ -200,7 +200,7 @@ private:
 	std::vector<int> _customItemPreviewIndex;
 	int _kneelBonus, _oneHandedPenalty;
 	int _monthlySalary, _monthlyMaintenance;
-	int _sprayWaypoints;
+	int _sprayWaypoints, _artillerySpread;
 	RuleStatBonus _damageBonus, _meleeBonus, _accuracyMulti, _meleeMulti, _throwMulti, _closeQuartersMulti;
 	ModScript::BattleItemScripts::Container _battleItemScripts;
 	ScriptValues<RuleItem> _scriptValues;
@@ -618,6 +618,8 @@ public:
 	int getMonthlyMaintenance() const;
 	/// Gets how many waypoints are used for a "spray" attack
 	int getSprayWaypoints() const;
+	/// Gets the spread of artillery shots from this weapon
+	int getArtillerySpread() const;
 	/// Gets script.
 	template<typename Script>
 	const typename Script::Container &getScript() const { return _battleItemScripts.get<Script>(); }

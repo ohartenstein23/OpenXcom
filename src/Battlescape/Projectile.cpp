@@ -129,6 +129,9 @@ int Projectile::calculateTrajectory(double accuracy, const Position& originVoxel
 		test = _save->getTileEngine()->calculateLine(originVoxel, _targetVoxel, false, &_trajectory, 0);
 	}
 
+	if (!_action.actor) // prevents artillery beacons crashing when searching for LOF
+		test = V_EMPTY;
+
 	if (test != V_EMPTY &&
 		!_trajectory.empty() &&
 		_action.actor->getFaction() == FACTION_PLAYER &&
@@ -571,6 +574,71 @@ void Projectile::addVaporCloud()
 			tile->addParticle(particle);
 		}
 	}
+}
+
+/**
+ * Calculates a new target and origin in voxel space for artillery shots, based on accuracy
+ */
+Position Projectile::calculateArtilleryStrike(Position origin, Position target, double accuracy, int &projectileImpact)
+{
+	int xdiff = origin.x - target.x;
+	int ydiff = origin.y - target.y;
+	double realDistance = sqrt((double)(xdiff*xdiff)+(double)(ydiff*ydiff));
+	const RuleItem *weapon = _action.weapon->getRules();
+
+	double modifier = 0.0;
+	int upperLimit = weapon->getAimRange();
+	int lowerLimit = weapon->getMinRange();
+	if (Options::battleUFOExtenderAccuracy)
+	{
+		if (_action.type == BA_AUTOSHOT)
+		{
+			upperLimit = weapon->getAutoRange();
+		}
+		else if (_action.type == BA_SNAPSHOT)
+		{
+			upperLimit = weapon->getSnapRange();
+		}
+	}
+	if (realDistance / 16 < lowerLimit)
+	{
+		modifier = (weapon->getDropoff() * (lowerLimit - realDistance / 16)) / 100;
+	}
+	else if (upperLimit < realDistance / 16)
+	{
+		modifier = (weapon->getDropoff() * (realDistance / 16 - upperLimit)) / 100;
+	}
+	accuracy = std::max(0.0, accuracy - modifier);
+
+	int maxDeviation = std::max(0, (int)(weapon->getArtillerySpread() * 16 * (1 - accuracy)));
+	Position newTarget;
+	int targetingTries = 0;
+	while (targetingTries < 100)
+	{
+		newTarget = target;
+		newTarget.x += RNG::generate(-maxDeviation, maxDeviation);
+		newTarget.y += RNG::generate(-maxDeviation, maxDeviation);
+		Tile *tile = _save->getTile(newTarget.toTile());
+		if (tile)
+		{
+			target = newTarget;
+			break;
+		}
+
+		++targetingTries;
+	}
+
+	// Make sure we extend the line for the strike all the way down to the ground, we'll see if we impact something first when the trajectory is calculated
+	target.z = 0;
+
+	// Set the origin straight above the target
+	origin = target;
+	origin.z = _save->getMapSizeZ() * 24 - 1;
+
+	_trajectory.clear();
+	projectileImpact = _save->getTileEngine()->calculateLine(origin, target, true, &_trajectory, 0);
+
+	return origin;
 }
 
 }

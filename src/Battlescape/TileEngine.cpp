@@ -2161,6 +2161,9 @@ bool TileEngine::awardExperience(BattleActionAttack attack, BattleUnit *target, 
 		{
 			expType = ETM_THROWING_100;
 			expFuncA = &BattleUnit::addThrowingExp; // e.g. willie pete, acid grenade, stun grenade, HE grenade, smoke grenade, proxy grenade, ...
+
+			if (weapon->getRules()->getArtillerySpread() > -1) // Artillery beacons are practically cheating anyways, so no experience for you.
+				return false;
 		}
 		// MELEE
 		else if (weapon->getRules()->getBattleType() == BT_MELEE)
@@ -2284,6 +2287,15 @@ bool TileEngine::hitUnit(BattleActionAttack attack, BattleUnit *target, const Po
 		}
 	}
 
+	// Artillery beacons: the explosions have no "attacker", so we add it back in here for experience
+	if (!attack.attacker && attack.type == BA_NONE &&  attack.weapon_item && attack.weapon_item->getRules()->getArtillerySpread() > -1)
+	{
+		if (attack.weapon_item->getOwner())
+			attack.attacker = attack.weapon_item->getOwner();
+		else if (attack.weapon_item->getPreviousOwner())
+			attack.attacker = attack.weapon_item->getPreviousOwner();
+	}
+
 	if (attack.attacker && target->getFaction() != FACTION_PLAYER)
 	{
 		// if it's going to bleed to death and it's not a player, give credit for the kill.
@@ -2391,6 +2403,10 @@ void TileEngine::hit(BattleActionAttack attack, Position center, int power, cons
 	const auto part = voxelCheck(center, attack.attacker);
 	const auto damage = type->getRandomDamage(power);
 	const auto tileFinalDamage = type->getTileFinalDamage(type->getRandomDamageForTile(power, damage));
+	// You can hit yourself with artillery fire
+	int artilleryHitPart = -1;
+	if (attack.weapon_item && attack.weapon_item->getRules()->getArtillerySpread() > -1)
+		artilleryHitPart = voxelCheck(center, 0);
 	if (part >= V_FLOOR && part <= V_OBJECT)
 	{
 		bool nothing = true;
@@ -2427,7 +2443,7 @@ void TileEngine::hit(BattleActionAttack attack, Position center, int power, cons
 			}
 		}
 	}
-	else if (part == V_UNIT)
+	else if (part == V_UNIT || (artilleryHitPart != -1 && artilleryHitPart == V_UNIT))
 	{
 		BattleUnit *bu = tile->getOverlappingUnit(_save);
 		if (bu && bu->getHealth() > 0)

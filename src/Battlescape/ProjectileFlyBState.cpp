@@ -78,6 +78,18 @@ void ProjectileFlyBState::init()
 		return;
 	}
 
+	// Special handling for artillery strike 'beacons' - they may have no unit, so we can skip most of the targeting and LOS handling
+	if (weapon->getRules()->getArtillerySpread() > -1 && _action.type == BA_NONE)
+	{
+		_targetVoxel = _origin;
+		if (createNewProjectile())
+		{
+			_parent->getMap()->setCursorType(CT_NONE);
+			_parent->getMap()->getCamera()->stopMouseScrolling();
+		}
+		return;
+	}
+
 	if (!_parent->getSave()->getTile(_action.target)) // invalid target position
 	{
 		_parent->popState();
@@ -469,9 +481,96 @@ bool ProjectileFlyBState::createNewProjectile()
 			return false;
 		}
 	}
-	else if (_action.weapon->getArcingShot(_action.type)) // special code for the "spit" trajectory
+	// Special handling for artillery strike, re-check trajectory with perfect accuracy
+	// We'll apply accuracy later once we know the target
+	else if (_action.weapon->getRules()->getArtillerySpread() > -1)
+	{
+		if (_action.type == BA_NONE) // Special handling for grenade beacons
+		{
+			if (_action.weapon->getRules()->getFireSound() != -1)
+			{
+				_parent->getMod()->getSoundByDepth(_parent->getDepth(), _ammo->getRules()->getFireSound())->play(-1, _parent->getMap()->getSoundAngle(_action.target));
+			}
+			else if (_action.weapon->getRules()->getFireSound() != -1)
+			{
+				_parent->getMod()->getSoundByDepth(_parent->getDepth(), _action.weapon->getRules()->getFireSound())->play(-1, _parent->getMap()->getSoundAngle(_action.target));
+			}
+		}
+		else if (_action.autoShotCounter == 1) // Only check line of fire when first picking target
+		{
+			bool arcing = false;
+			// Check to see if we need line of fire
+			if (!_action.weapon->getRules()->isLOSRequired())
+			{
+				_targetVoxel = Position(_action.target.x*16 + 8, _action.target.y*16 + 8, _action.target.z*24 + 12);
+			}
+			else if (_action.weapon->getArcingShot(_action.type))
+			{
+				arcing = true;
+				_projectileImpact = projectile->calculateThrow(1.10);
+			}
+			else if (_originVoxel != Position(-1,-1,-1))
+			{
+				_projectileImpact = projectile->calculateTrajectory(1.10, _originVoxel, false);
+			}
+			else
+			{
+				_projectileImpact = projectile->calculateTrajectory(1.10);
+			}
+
+			if (!_action.weapon->getRules()->isLOSRequired() ||
+				(arcing && _projectileImpact != V_EMPTY && _projectileImpact != V_OUTOFBOUNDS) ||
+				(!arcing && _targetVoxel != Position(-16,-16,-24) && (_projectileImpact != V_EMPTY || _action.type == BA_LAUNCH)))
+			{
+				// set the soldier in an aiming position
+				_unit->aim(true);
+				// and we have a lift-off
+				if (_ammo->getRules()->getFireSound() != -1)
+				{
+					_parent->getMod()->getSoundByDepth(_parent->getDepth(), _ammo->getRules()->getFireSound())->play(-1, _parent->getMap()->getSoundAngle(_unit->getPosition()));
+				}
+				else if (_action.weapon->getRules()->getFireSound() != -1)
+				{
+					_parent->getMod()->getSoundByDepth(_parent->getDepth(), _action.weapon->getRules()->getFireSound())->play(-1, _parent->getMap()->getSoundAngle(_unit->getPosition()));
+				}
+				if (_action.type != BA_LAUNCH)
+				{
+					_action.weapon->spendAmmoForAction(_action.type, _parent->getSave());
+				}
+			}
+			else
+			{
+				// no line of fire
+				delete projectile;
+				_parent->getMap()->setProjectile(0);
+				if (_parent->getPanicHandled())
+				{
+					_action.result = arcing ? "STR_NO_TRAJECTORY": "STR_NO_LINE_OF_FIRE";
+				}
+				_unit->abortTurn();
+				_parent->popState();
+				return false;
+			}
+		}
+		else
+		{
+			if (_ammo->getRules()->getFireSound() != -1)
+			{
+				_parent->getMod()->getSoundByDepth(_parent->getDepth(), _ammo->getRules()->getFireSound())->play(-1, _parent->getMap()->getSoundAngle(_unit->getPosition()));
+			}
+			else if (_action.weapon->getRules()->getFireSound() != -1)
+			{
+				_parent->getMod()->getSoundByDepth(_parent->getDepth(), _action.weapon->getRules()->getFireSound())->play(-1, _parent->getMap()->getSoundAngle(_unit->getPosition()));
+			}
+
+			_unit->aim(true);
+			_action.weapon->spendAmmoForAction(_action.type, _parent->getSave());
+		}
+	}
+	else if (_action.weapon->getArcingShot(_action.type)) // special code for the "spit"
 	{
 		_projectileImpact = projectile->calculateThrow(_unit->getFiringAccuracy(_action.type, _action.weapon, _parent->getMod()) / accuracyDivider);
+
 		if (_projectileImpact != V_EMPTY && _projectileImpact != V_OUTOFBOUNDS)
 		{
 			// set the soldier in an aiming position
@@ -547,7 +646,27 @@ bool ProjectileFlyBState::createNewProjectile()
 		}
 	}
 
-	if (_action.type != BA_THROW && _action.type != BA_LAUNCH)
+	// Artillery strike handling
+	if (_action.weapon->getRules()->getArtillerySpread() > -1 && _action.type != BA_THROW)
+	{
+		double accuracy;
+		Position origin;
+		if (_action.type != BA_NONE)
+		{
+			accuracy = _unit->getFiringAccuracy(_action.type, _action.weapon, _parent->getMod()) / accuracyDivider;
+			origin = _parent->getSave()->getTileEngine()->getOriginVoxel(_action, _parent->getSave()->getTile(_action.actor->getPosition()));
+		}
+		else
+		{
+			accuracy = 0;
+			origin = _action.target;
+		}
+
+		_originVoxel = projectile->calculateArtilleryStrike(origin, _targetVoxel, accuracy, _projectileImpact);
+		_origin = _originVoxel.toTile();
+	}
+
+	if (_action.type != BA_THROW && _action.type != BA_LAUNCH && _action.type != BA_NONE)
 		_unit->getStatistics()->shotsFiredCounter++;
 
 	return true;
@@ -560,10 +679,41 @@ bool ProjectileFlyBState::createNewProjectile()
  */
 void ProjectileFlyBState::think()
 {
+	bool isArtilleryBeacon = _action.weapon->getRules()->getArtillerySpread() > -1 && _action.type == BA_NONE;
+
 	_parent->getSave()->getBattleState()->clearMouseScrollingState();
 	/* TODO refactoring : store the projectile in this state, instead of getting it from the map each time? */
 	if (_parent->getMap()->getProjectile() == 0)
 	{
+		// Special handling for artillery beacons
+		if (isArtilleryBeacon && _action.weapon->getRules()->getConfigAuto()->shots > _action.autoShotCounter)
+		{
+			createNewProjectile();
+			if (_action.cameraPosition.z != -1)
+			{
+				_parent->getMap()->getCamera()->setMapOffset(_action.cameraPosition);
+				_parent->getMap()->invalidate();
+			}
+
+			return;
+		}
+		else if (isArtilleryBeacon)
+		{
+			if (_action.cameraPosition.z != -1 && _action.waypoints.size() <= 1)
+			{
+				_parent->getMap()->getCamera()->setMapOffset(_action.cameraPosition);
+				_parent->getMap()->invalidate();
+			}
+			if (_parent->getSave()->getSide() == FACTION_PLAYER || _parent->getSave()->getDebugMode())
+			{
+				_parent->setupCursor();
+			}
+			_parent->convertInfected();
+			_parent->popState();
+
+			return;
+		}
+
 		Tile *t = _parent->getSave()->getTile(_action.actor->getPosition());
 		bool hasFloor = t && !t->hasNoFloor(_parent->getSave());
 		bool unitCanFly = _action.actor->getMovementType() == MT_FLY;
@@ -608,6 +758,10 @@ void ProjectileFlyBState::think()
 		if (_action.type != BA_THROW && _ammo && _ammo->getRules()->getShotgunPellets() != 0)
 		{
 			// shotgun pellets move to their terminal location instantly as fast as possible
+			_parent->getMap()->getProjectile()->skipTrajectory();
+		}
+		else if (isArtilleryBeacon && _action.weapon->getRules()->getShotgunPellets() != 0)
+		{
 			_parent->getMap()->getProjectile()->skipTrajectory();
 		}
 		if (!_parent->getMap()->getProjectile()->move())
@@ -662,6 +816,99 @@ void ProjectileFlyBState::think()
 					nextWaypoint->targetFloor();
 				}
 				_parent->statePushNext(nextWaypoint);
+			}
+			else if (isArtilleryBeacon)
+			{
+				_parent->getMap()->resetCameraSmoothing();
+				if (_projectileImpact != V_OUTOFBOUNDS)
+				{
+					bool shotgun = _action.weapon->getRules()->getShotgunPellets() != 0 && _action.weapon->getRules()->getDamageType()->isDirect();
+
+					int offset = 0;
+					// explosions impact not inside the voxel but two steps back (projectiles generally move 2 voxels at a time)
+					if (_action.weapon->getRules()->getExplosionRadius(0) != 0 && _projectileImpact != V_UNIT)
+					{
+						offset = -2;
+					}
+
+					BattleActionAttack action = BattleActionAttack(_action, _action.weapon);
+					action.attacker = 0;
+					_parent->statePushFront(new ExplosionBState(
+						_parent, _parent->getMap()->getProjectile()->getPosition(offset),
+						action, 0, 0,
+						shotgun ? 0 : _range + _parent->getMap()->getProjectile()->getDistance()
+					));
+
+					// special shotgun behaviour: trace extra projectile paths, and add bullet hits at their termination points.
+					if (shotgun)
+					{
+						int behaviorType = _action.weapon->getRules()->getShotgunBehaviorType();
+						int spread = _action.weapon->getRules()->getShotgunSpread();
+						int choke = _action.weapon->getRules()->getShotgunChoke();
+						Position firstPelletImpact = _parent->getMap()->getProjectile()->getPosition(-2);
+						Position originalTarget = _targetVoxel;
+
+						int i = 1;
+						while (i != _action.weapon->getRules()->getShotgunPellets())
+						{
+							if (behaviorType == 1)
+							{
+								// use impact location to determine spread (instead of originally targeted voxel), as long as it's not the same as the origin
+								if (firstPelletImpact != _parent->getSave()->getTileEngine()->getOriginVoxel(_action, _parent->getSave()->getTile(_origin)))
+								{
+									_targetVoxel = firstPelletImpact;
+								}
+								else
+								{
+									_targetVoxel = originalTarget;
+								}
+							}
+
+
+							Projectile *proj = new Projectile(_parent->getMod(), _parent->getSave(), _action, _origin, _targetVoxel, _ammo);
+
+							// let it trace to the point where it hits
+							int secondaryImpact = V_EMPTY;
+							if (behaviorType == 1)
+							{
+								// pellet spread based on spread and choke values
+								secondaryImpact = proj->calculateTrajectory(std::max(0.0, (1.0 - spread / 100.0) * choke / 100.0), _originVoxel);
+
+							}
+							else
+							{
+								// pellet spread based on spread and firing accuracy with diminishing formula
+								// identical with vanilla formula when spread = 100 (default)
+								secondaryImpact = proj->calculateTrajectory(std::max(0.0, (_action.weapon->getRules()->getAccuracyAuto() / 100.0) - i * 5.0 * spread / 100.0), _originVoxel);
+							}
+
+							if (secondaryImpact != V_EMPTY)
+							{
+								// as above: skip the shot to the end of it's path
+								proj->skipTrajectory();
+								// insert an explosion and hit
+								if (secondaryImpact != V_OUTOFBOUNDS)
+								{
+									BattleActionAttack action = BattleActionAttack(_action, _action.weapon);
+									action.attacker = 0;
+
+									Explosion *explosion = new Explosion(proj->getPosition(offset), _action.weapon->getRules()->getHitAnimation());
+									int power = _action.weapon->getRules()->getPowerBonus(_unit) - _action.weapon->getRules()->getPowerRangeReduction(proj->getDistance());
+									_parent->getMap()->getExplosions()->push_back(explosion);
+									_parent->getSave()->getTileEngine()->hit(action, proj->getPosition(offset), power, _action.weapon->getRules()->getDamageType());
+
+									//do not work yet
+//									if (_ammo->getRules()->getExplosionRadius(_unit) != 0)
+//									{
+//										_parent->getTileEngine()->explode({ _action, _ammo }, proj->getPosition(offset), _ammo->getRules()->getPower(), _ammo->getRules()->getDamageType(), _ammo->getRules()->getExplosionRadius(), _unit);
+//									}
+								}
+							}
+							++i;
+							delete proj;
+						}
+					}
+				}
 			}
 			else
 			{

@@ -518,7 +518,16 @@ void BattlescapeGame::endTurn()
 			{
 				if (item->fuseEndTurnEffect())
 				{
-					if (rule->getBattleType() == BT_GRENADE) // it's a grenade to explode now
+					if (rule->getBattleType() == BT_GRENADE && rule->getArtillerySpread() > -1) // it's an artillery beacon
+					{
+						Position p = tile->getPosition().toVoxel() + Position(8, 8, - tile->getTerrainLevel() + (unit ? unit->getHeight() / 2 : 0));
+						BattleAction artilleryAction;
+						artilleryAction.weapon = item;
+						artilleryAction.target = tile->getPosition();
+						statePushNext(new ProjectileFlyBState(this, artilleryAction, p, 0));
+						exploded = true;
+					}
+					else if (rule->getBattleType() == BT_GRENADE) // it's a grenade to explode now
 					{
 						Position p = tile->getPosition().toVoxel() + Position(8, 8, - tile->getTerrainLevel() + (unit ? unit->getHeight() / 2 : 0));
 						statePushNext(new ExplosionBState(this, p, BattleActionAttack{ BA_NONE, unit, item, item, }));
@@ -2716,7 +2725,16 @@ int BattlescapeGame::checkForProximityGrenades(BattleUnit *unit)
 					bool g = item->getGlow();
 					if (item->fuseProximityEvent())
 					{
-						if (ruleItem->getBattleType() == BT_GRENADE || ruleItem->getBattleType() == BT_PROXIMITYGRENADE)
+						if ((ruleItem->getBattleType() == BT_GRENADE || ruleItem->getBattleType() == BT_PROXIMITYGRENADE) && ruleItem->getArtillerySpread() > -1) // it's an artillery beacon
+						{
+							Position p = t->getPosition().toVoxel() + Position(8, 8, t->getTerrainLevel());
+							BattleAction artilleryAction;
+							artilleryAction.weapon = item;
+							artilleryAction.target = t->getPosition();
+							statePushNext(new ProjectileFlyBState(this, artilleryAction, p, 0));
+							exploded = true;
+						}
+						else if (ruleItem->getBattleType() == BT_GRENADE || ruleItem->getBattleType() == BT_PROXIMITYGRENADE)
 						{
 							Position p = t->getPosition().toVoxel() + Position(8, 8, t->getTerrainLevel());
 							statePushNext(new ExplosionBState(this, p, BattleActionAttack{ BA_NONE, nullptr, item, item, }));

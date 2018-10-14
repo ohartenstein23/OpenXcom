@@ -64,7 +64,7 @@ RuleItem::RuleItem(const std::string &type) :
 	_meleePower(0), _specialType(-1), _vaporColor(-1), _vaporDensity(0), _vaporProbability(15),
 	_kneelBonus(-1), _oneHandedPenalty(-1),
 	_monthlySalary(0), _monthlyMaintenance(0),
-	_sprayWaypoints(0)
+	_sprayWaypoints(0), _artillerySpread(-1)
 {
 	_accuracyMulti.setFiring();
 	_meleeMulti.setMelee();
@@ -644,6 +644,7 @@ void RuleItem::load(const YAML::Node &node, Mod *mod, int listOrder, const ModSc
 	_monthlySalary = node["monthlySalary"].as<int>(_monthlySalary);
 	_monthlyMaintenance = node["monthlyMaintenance"].as<int>(_monthlyMaintenance);
 	_sprayWaypoints = node["sprayWaypoints"].as<int>(_sprayWaypoints);
+	_artillerySpread = node["artillerySpread"].as<int>(_artillerySpread);
 
 	_damageBonus.load(node["damageBonus"]);
 	_meleeBonus.load(node["meleeBonus"]);
@@ -2430,6 +2431,15 @@ int RuleItem::getMonthlyMaintenance() const
 int RuleItem::getSprayWaypoints() const
 {
 	return _sprayWaypoints;
+}
+
+/**
+ * Gets how much spread there is when this weapon is used as artillery
+ * @return Max spread in tiles
+ */
+int RuleItem::getArtillerySpread() const
+{
+	return _artillerySpread;
 }
 
 }

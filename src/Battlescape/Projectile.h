@@ -79,6 +79,8 @@ public:
 	bool isReversed() const;
 	/// adds a cloud of particles at the projectile's location
 	void addVaporCloud();
+	/// Calculates spread for artillery shots
+	Position calculateArtilleryStrike(Position origin, Position target, double accuracy, int &projectileImpact);
 };
 
 }
