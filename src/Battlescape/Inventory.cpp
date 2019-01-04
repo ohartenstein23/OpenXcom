@@ -849,6 +849,10 @@ void Inventory::mouseClick(Action *action, State *state)
 								{
 									tuCost += tuUnload;
 								}
+								else if (Options::oneHandedUnloading && weaponRightHand && weaponLeftHand)
+								{
+									tuCost += tuUnload;
+								}
 								else
 								{
 									canLoad = false;
@@ -866,7 +870,12 @@ void Inventory::mouseClick(Action *action, State *state)
 							if (!_tu || _selUnit->spendTimeUnits(tuCost))
 							{
 								auto oldAmmo = item->setAmmoForSlot(slotAmmo, _selItem);
-								if (oldAmmo)
+								if (oldAmmo && weaponRightHand && weaponLeftHand)
+								{
+									moveItem(oldAmmo, _inventorySlotGround, 0, 0);
+									arrangeGround();
+								}
+								else if (oldAmmo)
 								{
 									moveItem(oldAmmo, (item == weaponRightHand ? _inventorySlotLeftHand : _inventorySlotRightHand), 0, 0);
 								}
