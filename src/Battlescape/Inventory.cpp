@@ -664,9 +664,9 @@ void Inventory::mouseClick(Action *action, State *state)
 					x += _groundOffset;
 				}
 				BattleItem *item = _selUnit->getItem(slot, x, y);
-				if (item != 0 && !item->getRules()->isFixed())
+				if (item != 0)
 				{
-					if ((SDL_GetModState() & KMOD_CTRL))
+					if ((SDL_GetModState() & KMOD_CTRL) && !item->getRules()->isFixed())
 					{
 						RuleInventory *newSlot = _inventorySlotGround;
 						std::string warning = "STR_NOT_ENOUGH_SPACE";
@@ -741,13 +741,19 @@ void Inventory::mouseClick(Action *action, State *state)
 							_warning->showMessage(_game->getLanguage()->getString(warning));
 						}
 					}
-					else
+					else if (!item->getRules()->isFixed())
 					{
 						setSelectedItem(item);
 						if (item->getFuseTimer() >= 0)
 						{
 							_warning->showMessage(_game->getLanguage()->getString(item->getRules()->getPrimeActionMessage()));
 						}
+					}
+					else if (Options::oneHandedUnloading && (SDL_GetModState() & KMOD_SHIFT) && item->getRules()->isFixed())
+					{
+						_selItem = item; // don't worry, we'll unselect it later!
+						unload();
+						_selItem = 0; // see, I told you!
 					}
 				}
 			}
