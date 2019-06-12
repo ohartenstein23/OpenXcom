@@ -94,6 +94,7 @@ set ( battlescape_src
   Battlescape/InventoryState.cpp
   Battlescape/ItemSprite.cpp
   Battlescape/Map.cpp
+  Battlescape/MapEditor.cpp
   Battlescape/MedikitState.cpp
   Battlescape/MedikitView.cpp
   Battlescape/MeleeAttackBState.cpp
@@ -249,6 +250,7 @@ set ( menu_src
   Menu/ListSaveState.cpp
   Menu/LoadGameState.cpp
   Menu/MainMenuState.cpp
+  Menu/MapEditorMenuState.cpp
   Menu/NewBattleState.cpp
   Menu/NewGameState.cpp
   Menu/OptionsAdvancedState.cpp
