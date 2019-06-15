@@ -43,6 +43,7 @@
 #include "../Menu/TestState.h"
 #include <algorithm>
 #include "../fallthrough.h"
+#include "../Battlescape/MapEditor.h"
 
 namespace OpenXcom
 {
@@ -54,7 +55,8 @@ const double Game::VOLUME_GRADIENT = 10.0;
  * creates the display screen and sets up the cursor.
  * @param title Title of the game window.
  */
-Game::Game(const std::string &title) : _screen(0), _cursor(0), _lang(0), _save(0), _mod(0), _quit(false), _init(false), _update(false),  _mouseActive(true), _timeUntilNextFrame(0)
+Game::Game(const std::string &title) : _screen(0), _cursor(0), _lang(0), _save(0), _mod(0), _quit(false), _init(false), _update(false),  _mouseActive(true), _timeUntilNextFrame(0),
+										_mapEditor(0)
 {
 	Options::reload = false;
 	Options::mute = false;
@@ -125,6 +127,7 @@ Game::~Game()
 	delete _mod;
 	delete _screen;
 	delete _fpsCounter;
+	delete _mapEditor;
 
 	Mix_CloseAudio();
 
@@ -667,6 +670,24 @@ bool Game::isAltPressed() const
 bool Game::isShiftPressed() const
 {
 	return (SDL_GetModState() & KMOD_SHIFT) != 0;
+}
+
+/**
+ * Sets the pointer to the Map Editor to save it for multiple states
+ * param mapEditor Pointer to the new Map Editor
+ */
+void Game::setMapEditor(MapEditor *mapEditor)
+{
+	delete _mapEditor; // there can only be one!
+	_mapEditor = mapEditor;
+}
+
+/**
+ * Gets the Map Editor
+ */
+MapEditor *Game::getMapEditor()
+{
+	return _mapEditor;
 }
 
 }
