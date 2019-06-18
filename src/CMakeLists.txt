@@ -95,6 +95,7 @@ set ( battlescape_src
   Battlescape/ItemSprite.cpp
   Battlescape/Map.cpp
   Battlescape/MapEditor.cpp
+  Battlescape/MapEditorState.cpp
   Battlescape/MedikitState.cpp
   Battlescape/MedikitView.cpp
   Battlescape/MeleeAttackBState.cpp

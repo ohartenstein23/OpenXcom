@@ -2472,7 +2472,10 @@ inline void BattlescapeState::handle(Action *action)
 						_game->pushState(new InfoboxState(ss.str()));
 					}
 				}
+<<<<<<< HEAD
 
+=======
+>>>>>>> Moved map editing to its own state, problem of no refresh when Original battlescape scale to 1/2 Display
 				if (Options::debug)
 				{
 					// "ctrl-d" - enable debug mode
