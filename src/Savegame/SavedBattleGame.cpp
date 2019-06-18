@@ -31,6 +31,7 @@
 #include "../Battlescape/TileEngine.h"
 #include "../Battlescape/BattlescapeState.h"
 #include "../Battlescape/BattlescapeGame.h"
+#include "../Battlescape/MapEditorState.h"
 #include "../Battlescape/Position.h"
 #include "../Battlescape/Inventory.h"
 #include "../Mod/Mod.h"
@@ -68,6 +69,10 @@ SavedBattleGame::SavedBattleGame(Mod *rule, Language *lang) :
 	_unitsFalling(false), _cheating(false), _tuReserved(BA_NONE), _kneelReserved(false), _depth(0),
 	_ambience(-1), _ambientVolume(0.5), _minAmbienceRandomDelay(20), _maxAmbienceRandomDelay(60), _currentAmbienceDelay(0),
 	_turnLimit(0), _cheatTurn(20), _chronoTrigger(FORCE_LOSE), _beforeGame(true)
+	_cheating(false), _tuReserved(BA_NONE), _kneelReserved(false), _depth(0),
+	_ambience(-1), _ambientVolume(0.5), _minAmbienceRandomDelay(20), _maxAmbienceRandomDelay(60), _currentAmbienceDelay(0),
+	_turnLimit(0), _cheatTurn(20), _chronoTrigger(FORCE_LOSE), _beforeGame(true),
+	_mapEditorState(0)
 {
 	_tileSearch.resize(11*11);
 	for (int i = 0; i < 121; ++i)
@@ -2926,6 +2931,23 @@ void SavedBattleGame::resetUnitHitStates()
 	{
 		(*i)->resetHitState();
 	}
+}
+
+/**
+ * Sets the pointer to the MapEditorState
+ * @param mapEditorState Pointer to the MapEditorState
+ */
+void SavedBattleGame::setMapEditorState(MapEditorState *mapEditorState)
+{
+	_mapEditorState = mapEditorState;
+}
+
+/**
+ * Gets the pointer to the MapEditorState
+ */
+MapEditorState *SavedBattleGame::getMapEditorState()
+{
+	return _mapEditorState;
 }
 
 ////////////////////////////////////////////////////////////

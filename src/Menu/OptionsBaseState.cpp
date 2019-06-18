@@ -33,6 +33,7 @@
 #include "../Geoscape/GeoscapeState.h"
 #include "../Battlescape/BattlescapeState.h"
 #include "../Battlescape/MapEditor.h"
+#include "../Battlescape/MapEditorState.h"
 #include "OptionsVideoState.h"
 #include "OptionsAudioState.h"
 #include "OptionsFoldersState.h"
@@ -162,12 +163,15 @@ void OptionsBaseState::restart(OptionsOrigin origin)
 		}
 
 		_game->setState(new GeoscapeState);
-		MapEditor *editor = _game->getMapEditor();
-		if (editor)
-			editor->setSave(_game->getSavedGame()->getSavedBattle());
-		BattlescapeState *bs = new BattlescapeState(origBattleState->getMapEditor());
+		BattlescapeState *bs = new BattlescapeState();
 		_game->pushState(bs);
 		_game->getSavedGame()->getSavedBattle()->setBattleState(bs);
+	}
+	else if (origin == OPT_MAPEDITOR)
+	{
+		MapEditorState *mapEditorState = new MapEditorState(_game->getMapEditor());
+		_game->setState(mapEditorState);
+		_game->getSavedGame()->getSavedBattle()->setMapEditorState(mapEditorState);
 	}
 }
 
@@ -177,7 +181,8 @@ void OptionsBaseState::restart(OptionsOrigin origin)
 void OptionsBaseState::init()
 {
 	State::init();
-	if (_origin == OPT_BATTLESCAPE)
+	if (_origin == OPT_BATTLESCAPE ||
+		_origin == OPT_MAPEDITOR)
 	{
 		applyBattlescapeTheme("optionsMenu");
 	}
@@ -208,7 +213,7 @@ void OptionsBaseState::btnOkClick(Action *)
 	Options::switchDisplay();
 	int dX = Options::baseXResolution;
 	int dY = Options::baseYResolution;
-	Screen::updateScale(Options::battlescapeScale, Options::baseXBattlescape, Options::baseYBattlescape, _origin == OPT_BATTLESCAPE);
+	Screen::updateScale(Options::battlescapeScale, Options::baseXBattlescape, Options::baseYBattlescape, _origin == OPT_BATTLESCAPE || _origin == OPT_MAPEDITOR);
 	Screen::updateScale(Options::geoscapeScale, Options::baseXGeoscape, Options::baseYGeoscape, _origin != OPT_BATTLESCAPE);
 	dX = Options::baseXResolution - dX;
 	dY = Options::baseYResolution - dY;

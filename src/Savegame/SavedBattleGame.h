@@ -32,6 +32,7 @@ class MapDataSet;
 class Node;
 class BattlescapeState;
 class BattlescapeGame;
+class MapEditorState;
 class Position;
 class Pathfinding;
 class TileEngine;
@@ -60,6 +61,7 @@ public:
 
 private:
 	BattlescapeState *_battleState;
+	MapEditorState *_mapEditorState;
 	Mod *_rule;
 	int _mapsize_x, _mapsize_y, _mapsize_z;
 	std::vector<MapDataSet*> _mapDataSets;
@@ -566,6 +568,11 @@ public:
 	const HitLog *getHitLog() const;
 	/// Reset all the unit hit state flags.
 	void resetUnitHitStates();
+
+	/// Sets the pointer to the MapEditorState
+	void setMapEditorState(MapEditorState *mapEditorState);
+	/// Gets the pointer to the MapEditorState
+	MapEditorState *getMapEditorState();
 };
 
 }
