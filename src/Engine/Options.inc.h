@@ -91,6 +91,7 @@ OPT int oxceGeoSlowdownFactor;
 OPT bool oxceRecommendedOptionsWereSet;
 
 OPT std::string password;
+OPT int oxceMapEditorBoundsColor;
 
 // Flags and other stuff that don't need OptionInfo's.
 OPT bool mute, reload, newOpenGL, newScaleFilter, newHQXFilter, newXBRZFilter, newRootWindowedMode, newFullscreen, newAllowResize, newBorderless;
