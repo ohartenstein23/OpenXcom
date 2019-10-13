@@ -96,6 +96,7 @@ en-US:
 #SoldiersState.h
   STR_TRAINING: "Training"
   STR_SOLDIER_INFO: "Soldier Info"
+  STR_LIST_ALL_TRANSFORMATIONS: "List All Transformations"
 #SoldierTransformationAssignState.cpp
   STR_TRANSFER_TIME: "Transfer Time>{ALT}{0}"
   STR_RECOVERY_TIME: "Recovery Time>{ALT}{0}"
@@ -104,6 +105,18 @@ en-US:
   STR_CHANGES_MIN: "Changes (min)"
   STR_CHANGES_MAX: "Changes (max)"
   STR_BONUS_STATS: "Bonus stats"
+#SoldierTransformationListState.cpp
+  STR_SOLDIER_TRANSFORMATION_LIST: "Transformations"
+  STR_TRANSFORMATION_NAME: "PROJECT NAME"
+  STR_NUMBER_OF_TRANSFORMATIONS_BY_MATERIALS_AVAILABLE: "PROJECTS{NEWLINE}POSSIBLE"
+  STR_NUMBER_OF_TRANSFORMATIONS_BY_SOLDIERS_ELIGIBLE: "ELIGIBLE{NEWLINE}SOLDIERS"
+  STR_SHOWING_ALL_TRANSFORMATIONS: "All Transformations"
+  STR_SHOWING_TRANSFORMATIONS_WITH_ELIGIBLE_SOLDIERS: "Has Eligible Soldiers"
+  STR_SELECT_SOLDIER_TYPE: "Filter by Soldier Type"
+  STR_SELECT_SOLDIER_STATUS: "Filter by Soldier Status"
+  STR_HEALTHY_SOLDIERS: "Healthy Soldiers"
+  STR_WOUNDED_SOLDIERS: "Wounded Soldiers"
+  STR_DEAD_SOLDIERS: "Dead Soldiers"
 #StoresState.cpp
   STR_GRAND_TOTAL: "Grand Total"
 #TechTreeSelectState.cpp
