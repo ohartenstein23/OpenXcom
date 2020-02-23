@@ -4129,6 +4129,8 @@ void BattlescapeGenerator::loadMapForEditing(MapBlock *block)
 		}
 
 		loadMAP(block, 0, 0, 0, _terrain, 0, true);
+		loadRMP(block, 0, 0, 0, 0);
+		attachNodeLinks();
 	}
 	else
 	{
@@ -4162,10 +4164,10 @@ void BattlescapeGenerator::loadMapForEditing(MapBlock *block)
 	}
 
 	// How to handle nodes?
-	_dummy = new MapBlock("dummy");
-	loadNodes();
-	attachNodeLinks();
-	delete _dummy;
+	//_dummy = new MapBlock("dummy");
+	//loadNodes();
+	//attachNodeLinks();
+	//delete _dummy;
 
 	_save->setGlobalShade(_worldShade);
 
