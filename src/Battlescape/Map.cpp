@@ -1624,6 +1624,7 @@ void Map::drawTerrain(Surface *surface)
 	// TODO: replace with pathfinding circle colors based on type
 	// TODO: logically order drawing for nodes/lines that are out of plane
 	// TODO: make new order: outlines for out-of-plane nodes -> lines+arrows -> numbers for ID, spawn, and rank
+	// TODO?: arrows overtop selected nodes
 	if (_game->isState(_save->getMapEditorState()) && _save->getMapEditorState()->getRouteMode())
 	{
 		// First draw node markers and lines
@@ -1711,7 +1712,7 @@ void Map::drawTerrain(Surface *surface)
 				}
 			}
 			
-			//if (node = _save->getMapEditorState()->getSelectedNode())
+			//if (_editor->getSelectedNodes()->size() > 0)
 			//_arrow->blitNShade(surface, screenPosition.x + (_spriteWidth / 2) - (_arrow->getWidth() / 2), screenPosition.y + (_spriteWidth * 1 / 5) - _arrow->getHeight() + getArrowBobForFrame(_animFrame), 0);
 		}
 
