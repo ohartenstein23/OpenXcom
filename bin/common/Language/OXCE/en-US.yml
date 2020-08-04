@@ -233,6 +233,9 @@ en-US:
   STR_SAVE_PERSONAL_EQUIPMENT: "Save Personal Equipment"
   STR_LOAD_PERSONAL_EQUIPMENT: "Load Personal Equipment"
   STR_PERSONAL_EQUIPMENT_SAVED: "Personal equipment saved."
+#MapEditor.cpp
+  STR_MAP_EDITOR_SAVED_SUCCESSFULLY: "Map file saved successfully."
+  STR_MAP_EDITOR_SAVED_NODES_OVER_LIMIT: "Map file saved, highlighted nodes over the ID limit not saved."
 #MapEditorState.cpp
   STR_DEBUG_MAP_EDITOR: "Selected Tile Mode: {0}{NEWLINE}Selected Tile Part: {1}{NEWLINE}Cursor Position: {2}"
   STR_DEBUG_CLEAR: "CLEAR TILES"
