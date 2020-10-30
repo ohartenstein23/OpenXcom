@@ -385,6 +385,7 @@ void create()
 	_info.push_back(OptionInfo("mapEditorDragSelectPainting", &mapEditorDragSelectPainting, false, "STR_DRAG_SELECT_PAINTING", "STR_MAPEDITOR"));
 	_info.push_back(OptionInfo("mapEditorRightClickDragSelect", &mapEditorRightClickDragSelect, false, "STR_RIGHT_CLICK_DRAG_SELECT", "STR_MAPEDITOR"));
 	_info.push_back(OptionInfo("mapEditorSelectedTilesKeepFlashing", &mapEditorSelectedTilesKeepFlashing, true, "STR_SELECTED_TILES_KEEP_FLASHING", "STR_MAPEDITOR"));
+	_info.push_back(OptionInfo("mapEditorHoldAltToToggleModeSwitch", &mapEditorHoldAltToToggleModeSwitch, false, "STR_HOLD_ALT_TO_TOGGLE_MODE_SWITCH", "STR_MAPEDITOR"));
 	_info.push_back(OptionInfo("mapEditorCloseTileSelectionUIAfterClick", &mapEditorCloseTileSelectionUIAfterClick, false, "STR_CLOSE_TILE_SELECTION_UI_AFTER_CLICK", "STR_MAPEDITOR"));
 	_info.push_back(OptionInfo("mapEditorMaxTileSelectionColumns", &mapEditorMaxTileSelectionColumns, 16, "STR_MAX_NUMBER_OF_TILE_SELECTION_COLUMNS", "STR_MAPEDITOR"));
 	_info.push_back(OptionInfo("mapEditorMaxTileSelectionRows", &mapEditorMaxTileSelectionRows, 12, "STR_MAX_NUMBER_OF_TILE_SELECTION_ROWS", "STR_MAPEDITOR"));
