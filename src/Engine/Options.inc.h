@@ -105,6 +105,7 @@ OPT int oxceMapEditorBoundsColor;
 OPT bool mapEditorDragSelectPainting;
 OPT bool mapEditorRightClickDragSelect;
 OPT bool mapEditorSelectedTilesKeepFlashing;
+OPT bool mapEditorCloseTileSelectionUIAfterClick;
 OPT bool mapEditorShowOutOfPlaneNodes;
 OPT bool mapEditorShowOutOfPlaneNodeLinks;
 OPT bool mapEditorDottedOutOfPlaneNodeLinks;
