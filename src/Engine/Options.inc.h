@@ -94,6 +94,7 @@ OPT std::string password;
 OPT int oxceMapEditorBoundsColor;
 
 // Map Editor options, mostly for visual preferences
+OPT bool mapEditorDragSelectPainting;
 OPT bool mapEditorShowOutOfPlaneNodes;
 OPT bool mapEditorShowOutOfPlaneNodeLinks;
 OPT bool mapEditorDottedOutOfPlaneNodeLinks;

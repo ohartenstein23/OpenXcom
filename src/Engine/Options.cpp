@@ -374,6 +374,7 @@ void create()
 	_info.push_back(OptionInfo("keySelectMusicTrack", &keySelectMusicTrack, SDLK_END, "STR_SELECT_MUSIC_TRACK", "STR_OXCE"));
 
 	// Map Editor
+	_info.push_back(OptionInfo("mapEditorDragSelectPainting", &mapEditorDragSelectPainting, false, "STR_DRAG_SELECT_PAINTING", "STR_MAPEDITOR"));
 	_info.push_back(OptionInfo("mapEditorShowOutOfPlaneNodes", &mapEditorShowOutOfPlaneNodes, false, "STR_SHOW_OUT_OF_PLANE_NODES", "STR_MAPEDITOR"));
 	_info.push_back(OptionInfo("mapEditorShowOutOfPlaneNodeLinks", &mapEditorShowOutOfPlaneNodeLinks, true, "STR_SHOW_OUT_OF_PLANE_NODE_LINKS", "STR_MAPEDITOR"));
 	_info.push_back(OptionInfo("mapEditorDottedOutOfPlaneNodeLinks", &mapEditorDottedOutOfPlaneNodeLinks, true, "STR_DOTTED_OUT_OF_PLANE_NODE_LINKS", "STR_MAPEDITOR"));
