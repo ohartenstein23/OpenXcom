@@ -336,6 +336,8 @@ Globe::Globe(Game* game, int cenX, int cenY, int width, int height, int x, int y
 	_radars = new Surface(width, height, x, y);
 	_clipper = new FastLineClip(x, x+width, y, y+height);
 
+	_vertexMarkers = new Surface(width, height, x, y);
+
 	// Animation timers
 	_blinkTimer = new Timer(100);
 	_blinkTimer->onTimer((SurfaceHandler)&Globe::blink);
@@ -366,6 +368,8 @@ Globe::~Globe()
 	delete _texture;
 	delete _radars;
 	delete _clipper;
+
+	delete _vertexMarkers;
 
 	for (std::list<Polygon*>::iterator i = _cacheLand.begin(); i != _cacheLand.end(); ++i)
 	{
@@ -916,6 +920,8 @@ void Globe::setPalette(const SDL_Color *colors, int firstcolor, int ncolors)
 	_countries->setPalette(colors, firstcolor, ncolors);
 	_markers->setPalette(colors, firstcolor, ncolors);
 	_radars->setPalette(colors, firstcolor, ncolors);
+
+	_vertexMarkers->setPalette(colors, firstcolor, ncolors);
 }
 
 /**
@@ -1786,6 +1792,8 @@ void Globe::blit(SDL_Surface *surface)
 	_radars->blit(surface);
 	_countries->blit(surface);
 	_markers->blit(surface);
+
+	_vertexMarkers->blit(surface);
 }
 
 /**
@@ -2064,6 +2072,13 @@ void Globe::resize()
 		surfaces[i]->setHeight(height);
 		surfaces[i]->invalidate();
 	}
+
+	{
+		_vertexMarkers->setWidth(width);
+		_vertexMarkers->setHeight(height);
+		_vertexMarkers->invalidate();
+	}
+
 	_clipper->Wxrig = width;
 	_clipper->Wybot = height;
 	_cenX = width / 2;
@@ -2121,6 +2136,60 @@ void Globe::setCraftRange(double lon, double lat, double range)
 	_craftLon = lon;
 	_craftLat = lat;
 	_craftRange = range;
+}
+
+//**** Drawing methods for the geoscape editor ****
+
+/**
+ * Renders the ocean without the shading
+ */
+void Globe::drawOceanNoShade()
+{
+	lock();
+	drawCircle(_cenX+1, _cenY, _radius, OCEAN_COLOR);
+	unlock();
+}
+
+/**
+ * Draws markers for the edges of polygons
+ */
+void Globe::drawPolygonMarkers()
+{
+	_vertexMarkers->clear();
+	_vertexMarkers->lock();
+    Surface *surface = _vertexMarkers;
+
+    for (auto polygon : _cacheLand)
+    {
+        for (int point = 0; point < polygon->getPoints(); ++point)
+        {
+			Sint16 x[2], y[2];
+			polarToCart(polygon->getLongitude(point), polygon->getLatitude(point), &x[0], &y[0]);
+			polarToCart(polygon->getLongitude((point + 1) % polygon->getPoints()), polygon->getLatitude((point + 1) % polygon->getPoints()), &x[1], &y[1]);
+
+            // TODO: create function for just drawing of markers at given lat, lon
+            // with a given frame
+            int markerFrame = 8; // city marker for now?
+            auto marker = _markerSet->getFrame(markerFrame);
+            ShaderMove<const Uint8> surf{ marker, x[0] - marker->getWidth() / 2, y[0] - marker->getHeight() / 2 };
+            ShaderMove<Uint8> dest{ surface };
+			ShaderDrawFunc(
+				[](Uint8& destStuff, Uint8 srcStuff)
+				{
+					if (srcStuff)
+					{
+						destStuff = srcStuff + 1;
+					}
+				},
+				dest,
+				surf
+			);
+
+			_vertexMarkers->drawLine(x[0], y[0], x[1], y[1], LINE_COLOR);
+        }
+    }
+
+	_vertexMarkers->unlock();
 }
 
 }

@@ -37,6 +37,8 @@
 #include "../Engine/FileMap.h"
 #include "../Engine/SDL2Helpers.h"
 #include <fstream>
+#include "../Geoscape/GeoscapeEditorState.h"
+#include "../Savegame/SavedGame.h"
 
 namespace OpenXcom
 {
@@ -501,7 +503,10 @@ void MainMenuState::btnUpdateClick(Action*)
  */
 void MainMenuState::btnModToolsClick(Action *)
 {
-	_game->pushState(new MapEditorMenuState);
+	//_game->pushState(new MapEditorMenuState);
+    SavedGame *save = new SavedGame();
+    _game->setSavedGame(save);
+	_game->pushState(new GeoscapeEditorState);
 }
 
 /**

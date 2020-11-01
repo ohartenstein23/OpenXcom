@@ -61,6 +61,7 @@ private:
 	SurfaceSet *_texture, *_markerSet;
 	Game *_game;
 	Surface *_markers, *_countries, *_radars;
+	Surface *_vertexMarkers;
 	bool _hover, _craft;
 	int _blink;
 	Timer *_blinkTimer, *_rotTimer;
@@ -215,6 +216,12 @@ public:
 	void resize();
 	/// Move the mouse back to where it started after we finish drag scrolling.
 	void stopScrolling(Action *action);
+
+	///**** Methods for drawing on the geoscape editor ****
+	/// Renders the ocean without the shading
+	void drawOceanNoShade();
+	/// Draws markers for the edges of polygons
+	void drawPolygonMarkers();
 };
 
 }

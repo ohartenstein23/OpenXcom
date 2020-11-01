@@ -192,7 +192,9 @@ set ( geoscape_src
   Geoscape/GeoscapeCraftState.cpp
   Geoscape/GeoscapeEventState.cpp
   Geoscape/GeoscapeState.cpp
+  Geoscape/GeoscapeEditorState.cpp
   Geoscape/Globe.cpp
+  Geoscape/GlobeEditable.cpp
   Geoscape/GraphsState.cpp
   Geoscape/InterceptState.cpp
   Geoscape/ItemsArrivingState.cpp
