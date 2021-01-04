@@ -254,6 +254,7 @@ set ( menu_src
   Menu/LoadGameState.cpp
   Menu/MainMenuState.cpp
   Menu/MapEditorMenuState.cpp
+  Menu/MapEditorFindNodeState.cpp
   Menu/MapEditorFindTileState.cpp
   Menu/MapEditorInfoState.cpp
   Menu/MapEditorOptionsState.cpp
